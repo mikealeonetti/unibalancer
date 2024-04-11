@@ -6,16 +6,19 @@ import Debug from 'debug';
 import { WETH_TOKEN } from "../constants";
 import { DBProperty } from "../database";
 import DecimalUtil from "./DecimalUtil";
+import Decimal from "decimal.js";
 const debug = Debug("unibalancer:helpers:TransactionHelpers");
 
 export default class TransctionHelper {
     static async addDeficitFromTransaction(clientTransactionResponse : ClientTransactionResponse, reason : string ) : Promise<void> {
-        const { gasUsed } = clientTransactionResponse.receipt;
+        const { gasUsed, gasPrice } = clientTransactionResponse.receipt;
 
         // Add the eth used
-        const ethUsed = DecimalUtil.fromBigNumberish( gasUsed, WETH_TOKEN.decimals );
+        const ethUsed = new Decimal( gasUsed.toString() ).times( gasPrice.toString() ).adjustDecimalsLeft( WETH_TOKEN.decimals );
 
-        debug( "gasUsed=%s, eth used=%s", gasUsed, ethUsed );
+        //DecimalUtil.fromBigNumberish( gasUsed, WETH_TOKEN.decimals );
+
+        debug( "gasUsed=%s, gasPrice=%s, eth used=%s", gasUsed, gasPrice, ethUsed );
 
         // Add the deficit
         await DBProperty.addDeficits("weth", ethUsed, reason);
