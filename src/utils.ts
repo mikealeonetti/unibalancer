@@ -41,5 +41,5 @@ export function plusOrMinusStringFromDecimal( decimal : Decimal, decimalPlaces? 
     if( decimalPlaces!=null )
         return decimal.gt(0) ? `+${decimal.toFixed(decimalPlaces)}` : decimal.toFixed(decimalPlaces);
 
-        return decimal.gt(0) ? `+${decimal.toString()}` : decimal.toString();
+        return decimal.gt(0) ? `+${decimal.toFixed()}` : decimal.toFixed();
 }

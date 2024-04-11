@@ -6,6 +6,7 @@ import { DBPosition } from "./database/models/DBPosition";
 import { DBPositionHistory } from "./database/models/DBPositionHistory";
 import { PositionInfo } from "./helpers/PositionManager";
 import logger from "./logger";
+import { REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT } from './constants';
 
 const debug = Debug("unibalancer:shouldTriggerRedeposit");
 
@@ -68,12 +69,14 @@ export default async function (positionInfos: PositionInfo[]) {
         // Should we
         let shouldTriggerRedeposit = false;
 
+        debug( "REBALANCE_AT_PERCENT=%s, REBALANCE_PER_HOUR_COUNT=%s", REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT);
+
         // Do we have a trigger?
-        if (percentOfOpeningPrice.gte(1)) {
+        if (REBALANCE_AT_PERCENT>0 && percentOfOpeningPrice.gte(REBALANCE_AT_PERCENT)) {
             logger.info("Percent of opening price is greater than 1%. Trigger re-deposit.");
             shouldTriggerRedeposit = true;
         }
-        else if (hoursSinceLastRewardsCollected >= 24) {
+        else if (REBALANCE_PER_HOUR_COUNT>0 && hoursSinceLastRewardsCollected >= REBALANCE_PER_HOUR_COUNT) {
             logger.info("Over 24 hours since last re-deposit. Trigger re-deposit.");
             shouldTriggerRedeposit = true;
         }

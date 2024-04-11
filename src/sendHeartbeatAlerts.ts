@@ -31,10 +31,12 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
     debug("lastHeartbeat=%s", lastHeartbeat?.value);
 
     // Is it time?
+    /*
     if (lastHeartbeat != null && addMinutes(new Date(lastHeartbeat.value), HEARTBEAT_FREQUENCY_MINUTES) > now) {
         debug("Not time to send another heartbeat.");
         return;
     }
+    */
 
     // Get the balances
     const [
@@ -125,6 +127,9 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         const tokenAHoldingsUSDC = tokenAHoldings.times( priceAsDecimal );
         const totalTokenHoldings = tokenAHoldingsUSDC.plus( tokenBHoldings );
 
+        const currentDeficitToken0AsUsdc = currentDeficitToken0.times(priceAsDecimal);
+        const currentDeficitTotalAsUsdc = currentDeficitToken0AsUsdc.plus(currentDeficitToken1);
+
         // Save the last price
         await dbPosition.update({ 
             previousPrice: positionInfo.price.toFixed(),
@@ -158,8 +163,9 @@ USDC amount: %s (%s%%)
 
 Last rebalance: %s
 
-Owed WETH: %s
-Owed USDC: %s
+Total Deficit: %s USDC
+Deficit WETH: %s (%s USDC)
+Deficit USDC: %s
 
 Profit Taken Total: %s USDC
 Profit Taken WETH: %s (%s USDC)
@@ -193,8 +199,9 @@ Wallet USDC: %s`,
             // Last rebalance
             lastRebalanceString,
 
-            // Current deficits
-            currentDeficitToken0.toFixed(),
+            // Current Deficit
+            currentDeficitTotalAsUsdc.toFixed(2),
+            currentDeficitToken0.toFixed(), currentDeficitToken0AsUsdc,
             currentDeficitToken1.toFixed(2),
 
             // Latest profits

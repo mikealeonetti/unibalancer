@@ -63,22 +63,44 @@ export default class PositionManager {
 
         //debug( "tickPrice=%s, realPrice=%s", tickPrice.toFixed(), realPrice.toFixed() );
 
-        const halfRange = round(RANGE_PERCENT / 2);
+        const halfRange = new Decimal( RANGE_PERCENT ).div( 2 );
+        const upFraction = new Decimal( 100 ).plus(halfRange).div(100);
+        const downFraction = new Decimal( 100 ).minus(halfRange).div(100);
 
         debug("halfRange=%s", halfRange);
 
-        const tickPriceAsFractionup = realPrice.asFraction.multiply(
-            new Fraction(100 + halfRange, 100)
+        //const priceAsDecimal = realPrice.toDecimal();
+
+        // Up and down
+        //const tickPriceAsDecimalUp = priceAsDecimal.times( 100+halfRange ).div(100);
+        //const tickPriceAsDecimalDowm = priceAsDecimal.times( 100-halfRange ).div(100);
+
+        //Test
+        const tickPriceAsFractionUp = realPrice.asFraction.multiply(
+            upFraction.toPercent()
         );
         const tickPriceAsFractionDown = realPrice.asFraction.multiply(
-            new Fraction(100 - halfRange, 100)
+            downFraction.toPercent()
+        );
+
+        const upPriceTest = new Price(
+            realPrice.baseCurrency,
+            realPrice.quoteCurrency,
+            tickPriceAsFractionUp.denominator,
+            tickPriceAsFractionUp.numerator
+        );
+        const downPriceTest = new Price(
+            realPrice.baseCurrency,
+            realPrice.quoteCurrency,
+            tickPriceAsFractionDown.denominator,
+            tickPriceAsFractionDown.numerator
         );
 
         const upPrice = new Price(
             realPrice.baseCurrency,
             realPrice.quoteCurrency,
-            tickPriceAsFractionup.denominator,
-            tickPriceAsFractionup.numerator
+            tickPriceAsFractionUp.denominator,
+            tickPriceAsFractionUp.numerator
         );
         const downPrice = new Price(
             realPrice.baseCurrency,
@@ -87,7 +109,7 @@ export default class PositionManager {
             tickPriceAsFractionDown.numerator
         );
 
-        debug("upPrice=%s, downPrice=%s", upPrice.toFixed(), downPrice.toFixed());
+        debug("other upPrice=%s, downPrice=%s", upPrice.toFixed(), downPrice.toFixed());
 
         const uptick = priceToClosestTick(upPrice);
 

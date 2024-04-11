@@ -54,6 +54,9 @@ export const MINIMUM_GAS_TO_SAVE = Number(process.env.MINIMUM_GAS_TO_SAVE) || 0.
 
 export const MINIMUM_AMOUNT_TO_DEPOSIT_DOLLARS = Number(process.env.MINIMUM_AMOUNT_TO_DEPOSIT_DOLLARS) || 5;
 
+export const REBALANCE_PER_HOUR_COUNT: number = Number(process.env.REBALANCE_PER_HOUR_COUNT) || 0
+export const REBALANCE_AT_PERCENT: number = Number(process.env.REBALANCE_AT_PERCENT) || 1
+
 export const IS_DEBUG_MODE: Boolean = process.env.IS_DEBUG_MODE != null && toLower(process.env.IS_DEBUG_MODE) == "true" || false;
 
 export const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
