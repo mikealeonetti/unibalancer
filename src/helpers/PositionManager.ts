@@ -134,7 +134,7 @@ export default class PositionManager {
         */
     }
 
-    public static async approveAllowances( wethAmountWanted : CurrencyAmount<Currency>, usdcAmountWanted : CurrencyAmount<Currency> ): Promise<void> {
+    public static async approveAllowances(wethAmountWanted: CurrencyAmount<Currency>, usdcAmountWanted: CurrencyAmount<Currency>): Promise<void> {
         const contracts = [
             ["weth", wethContract, wethAmountWanted.toDecimal()],
             ["usdc", usdcContract, usdcAmountWanted.toDecimal()]
@@ -272,15 +272,15 @@ export default class PositionManager {
         }
 
         // Do we have to add the amounts?
-        if( hasPreviousPosition ) {
-            debug( "before wethBalance=%s,usdcBalance=%s", wethBalance.quotient, usdcBalance.quotient );
+        if (hasPreviousPosition) {
+            debug("before wethBalance=%s,usdcBalance=%s", wethBalance.quotient, usdcBalance.quotient);
 
             // Do we REALLY have to do this?
             //wethBalance = wethBalance.add( positionInfo.position.amount0 );
             //usdcBalance = usdcBalance.add( positionInfo.position.amount1 );
         }
 
-        debug( "after wethBalance=%s,usdcBalance=%s", wethBalance.toFixed(), usdcBalance.toFixed() );
+        debug("after wethBalance=%s,usdcBalance=%s", wethBalance.toFixed(), usdcBalance.toFixed());
 
         const positionToMintOrIncrease = Position.fromAmounts({
             pool,
@@ -510,6 +510,10 @@ USDC amount: %s (%s%%)`,
 
             debug("price=%s, numerator=%s, denominator=%s, priceDecimal=%s", price.toFixed(), price.numerator, price.denominator, price.toDecimal());
 
+            const { tokensOwed0, tokensOwed1 } = position;
+
+            debug("tokensOwed0=%s, tokensOwed1=%s", tokensOwed0, tokensOwed1);
+
             // Return it
             return ({
                 lowerPrice,
@@ -518,13 +522,13 @@ USDC amount: %s (%s%%)`,
                 price,
                 poolAndPoolInfo,
                 positionId,
-                tickLower: Number( position.tickLower ),
-                tickUpper: Number( position.tickUpper ),
+                tickLower: Number(position.tickLower),
+                tickUpper: Number(position.tickUpper),
                 liquidity: BigInt(position.liquidity.toString()),
                 feeGrowthInside0LastX128: BigInt(position.feeGrowthInside0LastX128.toString()),
                 feeGrowthInside1LastX128: BigInt(position.feeGrowthInside1LastX128.toString()),
-                tokensOwed0: DecimalUtil.fromBigNumberish(position.tokensOwed0, WETH_TOKEN.decimals),
-                tokensOwed1: DecimalUtil.fromBigNumberish(position.tokensOwed1, USDC_TOKEN.decimals),
+                tokensOwed0: DecimalUtil.fromBigNumberish(tokensOwed0, WETH_TOKEN.decimals),
+                tokensOwed1: DecimalUtil.fromBigNumberish(tokensOwed1, USDC_TOKEN.decimals),
             } as PositionInfo);
         }, { concurrency: MAX_CONCURRENCY });
 

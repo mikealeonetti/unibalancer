@@ -3,10 +3,9 @@ import { provider, userWallet } from "../network";
 import { ClientTransactionResponse } from "../types";
 
 import Debug from 'debug';
+import Decimal from "decimal.js";
 import { WETH_TOKEN } from "../constants";
 import { DBProperty } from "../database";
-import DecimalUtil from "./DecimalUtil";
-import Decimal from "decimal.js";
 const debug = Debug("unibalancer:helpers:TransactionHelpers");
 
 export default class TransctionHelper {
