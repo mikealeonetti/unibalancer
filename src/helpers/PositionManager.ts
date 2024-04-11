@@ -50,6 +50,8 @@ export interface PositionInfo {
 }
 export default class PositionManager {
 
+    static readonly MAX_UINT128 = new Decimal(2).pow(128).sub(1).toBigIntString(0);
+
     private static calculateTicks(poolInfo: PoolInfo): TickUpperAndLower {
         //const tickPrice = tickToPrice(WETH_TOKEN, USDC_TOKEN, poolInfo.tick);
         //const realPrice = ( BigInt( poolInfo.sqrtPriceX96.toString() ) / BigInt( 2**96 ) ) ** BigInt( 2 );
@@ -479,6 +481,18 @@ USDC amount: %s (%s%%)`,
                 debug("position %s has no liquidity.", positionId);
                 return (null);
             }
+
+            const results = await nftTokenContract.collect.staticCall(
+                {
+                    tokenId: positionId,
+                    recipient: userWallet.address, // some tokens might fail if transferred to address(0)
+                    amount0Max: this.MAX_UINT128,
+                    amount1Max: this.MAX_UINT128,
+                },
+                { from: userWallet.address } // need to simulate the call as the owner
+            );
+
+            debug("collect results=", results);
 
             // Get the pool
             const poolAndPoolInfo = await PoolHelper.getWethUsdcPoolAndPoolinfo();
