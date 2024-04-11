@@ -4,7 +4,7 @@ import { BigNumberish } from 'ethers';
 
 import Debug from 'debug';
 
-const debug = Debug("unibalancer:helpers:swapToken");
+const debug = Debug("helpers:DecimalUtil");
 
 declare module "@uniswap/sdk-core" {
     interface Price<TBase extends Currency, TQuote extends Currency> {

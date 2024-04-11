@@ -1,7 +1,7 @@
-import { CurrencyAmount, Percent, Token, TradeType } from "@uniswap/sdk-core";
+import { CurrencyAmount, Token, TradeType } from "@uniswap/sdk-core";
 import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
-import { FeeAmount, Pool, Route, SwapOptions, SwapQuoter, SwapRouter, Trade, computePoolAddress } from "@uniswap/v3-sdk";
+import { Pool, Route, SwapOptions, SwapQuoter, SwapRouter, Trade, computePoolAddress } from "@uniswap/v3-sdk";
 import { POOL_FACTORY_CONTRACT_ADDRESS, QUOTER_CONTRACT_ADDRESS, SWAP_ROUTER_ADDRESS, SWAP_SLIPPAGE } from "./constants";
 
 import Debug from 'debug';
@@ -10,6 +10,7 @@ import { ethers } from "ethers";
 import JSBI from "jsbi";
 import Erc20Contract from "./contracts/Erc20Contract";
 import { DBProperty } from "./database";
+import SwapHelper from "./helpers/SwapHelper";
 import { getSymbolFromTokenAddress } from "./helpers/TokenHelper";
 import TransactionHelper from "./helpers/TransactionHelper";
 import { userWallet } from "./network";
@@ -22,7 +23,11 @@ export default async function (tokenA: Token, tokenB: Token, inputAmountA: Decim
     const tokenASymbol = getSymbolFromTokenAddress(tokenA.address);
     const tokenBSymbol = getSymbolFromTokenAddress(tokenB.address);
 
-    const feeAmount = FeeAmount.MEDIUM;
+    const bestFeeAmount = await SwapHelper.getBestFeeTier(tokenA, tokenB, inputAmountA);
+
+    debug( "bestFeeAmount=", bestFeeAmount);
+
+    const { feeAmount } = bestFeeAmount;
 
     // How much it'll cost us to swap
     const totalSwapFee = inputAmountA.times(feeAmount).div(1e6);
