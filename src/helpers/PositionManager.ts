@@ -482,7 +482,7 @@ USDC amount: %s (%s%%)`,
                 return (null);
             }
 
-            const results = await nftTokenContract.collect.staticCall(
+            const collectResults = await nftTokenContract.collect.staticCall(
                 {
                     tokenId: positionId,
                     recipient: userWallet.address, // some tokens might fail if transferred to address(0)
@@ -492,7 +492,7 @@ USDC amount: %s (%s%%)`,
                 { from: userWallet.address } // need to simulate the call as the owner
             );
 
-            debug("collect results=", results);
+            debug("collect results=", collectResults);
 
             // Get the pool
             const poolAndPoolInfo = await PoolHelper.getWethUsdcPoolAndPoolinfo();
@@ -524,7 +524,7 @@ USDC amount: %s (%s%%)`,
 
             debug("price=%s, numerator=%s, denominator=%s, priceDecimal=%s", price.toFixed(), price.numerator, price.denominator, price.toDecimal());
 
-            const { tokensOwed0, tokensOwed1 } = position;
+            const [ tokensOwed0, tokensOwed1 ] = collectResults;
 
             debug("tokensOwed0=%s, tokensOwed1=%s", tokensOwed0, tokensOwed1);
 
