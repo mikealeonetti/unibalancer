@@ -199,7 +199,7 @@ Wallet USDC: %s`,
 
             // Current Deficit
             currentDeficitTotalAsUsdc.toFixed(2),
-            currentDeficitToken0.toFixed(), currentDeficitToken0AsUsdc,
+            currentDeficitToken0.toFixed(), currentDeficitToken0AsUsdc.toFixed(2),
             currentDeficitToken1.toFixed(2),
 
             // Latest profits
