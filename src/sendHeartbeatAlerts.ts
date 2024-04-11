@@ -28,15 +28,13 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
     // Get the last heartbeat time
     const lastHeartbeat = await DBProperty.getByKey(HEARTBEAT_KEY);
 
-    debug("lastHeartbeat=%s", lastHeartbeat);
+    debug("lastHeartbeat=%s", lastHeartbeat?.value);
 
     // Is it time?
-    
     if (lastHeartbeat != null && addMinutes(new Date(lastHeartbeat.value), HEARTBEAT_FREQUENCY_MINUTES) > now) {
         debug("Not time to send another heartbeat.");
         return;
     }
-    
 
     // Get the balances
     const [
@@ -71,12 +69,16 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             dbPosition,
             dbPositionHistory,
             tokenAHoldings,
-            tokenBHoldings
+            tokenBHoldings,
+            currentDeficitToken0,
+            currentDeficitToken1
         ] = await Promise.all([
             DBPosition.getByPositionIdString(positionIdString),
             DBPositionHistory.getLatestByPositionIdString(positionIdString),
             DBProperty.getTokenHoldings(token0Symbol),
             DBProperty.getTokenHoldings(token1Symbol),
+            DBProperty.getDeficits("weth"),
+            DBProperty.getDeficits("usdc"),
         ]);
 
         if (!dbPosition) {
@@ -156,6 +158,9 @@ USDC amount: %s (%s%%)
 
 Last rebalance: %s
 
+Owed WETH: %s
+Owed USDC: %s
+
 Profit Taken Total: %s USDC
 Profit Taken WETH: %s (%s USDC)
 Profit Taken USDC: %s
@@ -187,6 +192,10 @@ Wallet USDC: %s`,
 
             // Last rebalance
             lastRebalanceString,
+
+            // Current deficits
+            currentDeficitToken0.toFixed(),
+            currentDeficitToken1.toFixed(2),
 
             // Latest profits
             totalTokenHoldings.toFixed(2),

@@ -19,10 +19,6 @@ interface BestFeeTierReturn {
 export default class SwapHelper {
     static SWAP_FEES = [FeeAmount.LOW, FeeAmount.MEDIUM, FeeAmount.HIGH];
 
-    //static 
-
-
-
     static async getBestFeeTier(tokenA: Token, tokenB: Token, inputAmountA: Decimal): Promise<BestFeeTierReturn> {
         const quoterContract = new ethers.Contract(
             QUOTER_CONTRACT_ADDRESS,
