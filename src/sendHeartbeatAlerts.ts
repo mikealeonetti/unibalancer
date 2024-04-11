@@ -31,12 +31,10 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
     debug("lastHeartbeat=%s", lastHeartbeat?.value);
 
     // Is it time?
-    /*
     if (lastHeartbeat != null && addMinutes(new Date(lastHeartbeat.value), HEARTBEAT_FREQUENCY_MINUTES) > now) {
         debug("Not time to send another heartbeat.");
         return;
     }
-    */
 
     // Get the balances
     const [
