@@ -134,7 +134,7 @@ export default class PositionManager {
         */
     }
 
-    private static async approveAllowances( wethAmountWanted : CurrencyAmount<Currency>, usdcAmountWanted : CurrencyAmount<Currency> ): Promise<void> {
+    public static async approveAllowances( wethAmountWanted : CurrencyAmount<Currency>, usdcAmountWanted : CurrencyAmount<Currency> ): Promise<void> {
         const contracts = [
             ["weth", wethContract, wethAmountWanted.toDecimal()],
             ["usdc", usdcContract, usdcAmountWanted.toDecimal()]

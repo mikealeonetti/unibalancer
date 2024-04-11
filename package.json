@@ -13,6 +13,7 @@
     "increase-position" : "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/increaseCurrentPosition.js",
     "collect-fees" : "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/collectAllRewards.js",
     "run-tg" : "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/runTelegramBot.js",
+    "do-allowances" : "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/doNftAllowances.js",
     "lint": "eslint . --ext .ts",
     "gastest" : "tsc && NODE_OPTIONS=--enable-source-maps node dist/getGasPrices.js",
     "test": "echo \"Error: no test specified\" && exit 1"

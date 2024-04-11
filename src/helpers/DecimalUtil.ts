@@ -37,7 +37,7 @@ Decimal.prototype.toBigInt = function(shiftRight : number= 0): bigint {
     return bigInt;
 }
 Decimal.prototype.toPercent = function(): Percent {
-    const [fractionNumerator, fractionDenominator] = this.toFraction().map(String);
+    const [fractionNumerator, fractionDenominator] = this.toFraction().map(d=>d.toFixed());
 
     debug( "fractionNumerator=%s, fractionDenominator=%s", fractionNumerator, fractionDenominator );
 
@@ -67,12 +67,14 @@ Decimal.prototype.toBigIntString = function (shiftRight: number = 0): string {
 
     debug( "newDecimal=%s", newDecimal );
 
-    return newDecimal.toString();
+    return newDecimal.toFixed();
 };
 
 Decimal.prototype.toCurrencyAmount = function <T extends Currency>(token: T): CurrencyAmount<T> {
     // Get the bigint
     const bigIntString = this.toBigIntString(token.decimals);
+
+    debug( "toCurrencyAmount bigIntString=%s, token.decimals=%s", bigIntString, token.decimals );
 
     const currencyAmount = CurrencyAmount.fromRawAmount(
         token,
@@ -160,7 +162,7 @@ export default class DecimalUtil {
         // Make sure there are no zeroes
         inputDecimal = inputDecimal.trunc();
 
-        return inputDecimal.toString();
+        return inputDecimal.toFixed();
     }
 
     static toCurrencyAmount<T extends Currency>(token: T, inputDecimal: Decimal): CurrencyAmount<T> {
