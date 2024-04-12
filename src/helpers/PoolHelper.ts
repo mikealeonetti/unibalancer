@@ -6,6 +6,7 @@ import IUniswapV3PoolABI from '@uniswap/v3-core/artifacts/contracts/interfaces/I
 import { userWallet } from "../network";
 
 import Debug from 'debug';
+import { memoize } from "lodash";
 
 const debug = Debug("unibalancer:helpers:PoolHelper");
 
@@ -25,10 +26,10 @@ export interface PoolAndPoolInfo {
 }
 
 export default class PoolHelper {
-    static wethUsdcPool = PoolHelper.getPoolContract(WETH_TOKEN, USDC_TOKEN, FeeAmount.MEDIUM);
+    static getWethUsdcPool = memoize( ( feeAmount : FeeAmount )=> PoolHelper.getPoolContract(WETH_TOKEN, USDC_TOKEN, feeAmount) );
 
-    static async getWethUsdcPoolInfo(): Promise<PoolInfo> {
-        return this.getPoolInfo(this.wethUsdcPool);
+    static async getWethUsdcPoolInfo( feeAmount : FeeAmount ): Promise<PoolInfo> {
+        return this.getPoolInfo(this.getWethUsdcPool(feeAmount));
     }
 
     static getPoolContract(tokenA: Token, tokenB: Token, fee: FeeAmount): Contract {
@@ -48,9 +49,9 @@ export default class PoolHelper {
         return poolContract;
     }
 
-    static async getWethUsdcPoolAndPoolinfo(): Promise<PoolAndPoolInfo> {
+    static async getWethUsdcPoolAndPoolinfo( feeAmount : FeeAmount ): Promise<PoolAndPoolInfo> {
         // get pool info
-        const poolInfo = await PoolHelper.getWethUsdcPoolInfo();
+        const poolInfo = await PoolHelper.getWethUsdcPoolInfo(feeAmount);
 
         debug("constructPosition poolInfo=", poolInfo);
 

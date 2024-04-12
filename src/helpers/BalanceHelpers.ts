@@ -1,20 +1,20 @@
 import Decimal from "decimal.js";
+import { MAXIMUM_GAS_TO_SAVE, MINIMUM_GAS_TO_SAVE, USDC_TOKEN, WETH_TOKEN } from "../constants";
 import { provider, userWallet } from "../network";
 import DecimalUtil from "./DecimalUtil";
-import { MAXIMUM_GAS_TO_SAVE, MINIMUM_GAS_TO_SAVE, USDC_TOKEN, WETH_TOKEN } from "../constants";
 
+import { CurrencyAmount, Token } from "@uniswap/sdk-core";
 import Debug from 'debug';
-import { Currency, CurrencyAmount } from "@uniswap/sdk-core";
-import usdcContract from "../contracts/usdcContract";
 import { wethContract } from "../contracts/WethContract";
+import usdcContract from "../contracts/usdcContract";
 
-import TransactionHelper from './TransactionHelper';
-import logger from "../logger";
 import { DBProperty } from "../database";
+import logger from "../logger";
+import TransactionHelper from './TransactionHelper';
 
 const debug = Debug("unibalancer:helpers:BalanceHelpers");
 
-type WethUsdcBalanceAsCurrencyAmounts = [CurrencyAmount<Currency>, CurrencyAmount<Currency>];
+type WethUsdcBalanceAsCurrencyAmounts = [CurrencyAmount<Token>, CurrencyAmount<Token>];
 
 export default class BalanceHelpers {
     static async ethBalance(address: string = userWallet.address): Promise<Decimal> {

@@ -2,7 +2,7 @@ import { Fraction, Percent, Price, Token } from "@uniswap/sdk-core";
 import { MintOptions, NonfungiblePositionManager, Pool, Position, nearestUsableTick, priceToClosestTick, tickToPrice, AddLiquidityOptions } from "@uniswap/v3-sdk";
 import { addMinutes } from "date-fns";
 import { difference, first, pick, round, times } from "lodash";
-import { DEPOSIT_SLIPPAGE, MAX_CONCURRENCY, NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, RANGE_PERCENT, USDC_TOKEN, V3_SWAP_ROUTER_ADDRESS, WETH_TOKEN } from "../constants";
+import { DEPOSIT_SLIPPAGE, MAX_CONCURRENCY, NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, RANGE_PERCENT, USDC_TOKEN, V3_SWAP_ROUTER_ADDRESS, WANTED_FEE_AMOUNT, WETH_TOKEN } from "../constants";
 import { wethContract } from "../contracts/WethContract";
 import usdcContract from "../contracts/usdcContract";
 import { userWallet } from "../network";
@@ -25,6 +25,7 @@ import { DBPosition } from "../database/models/DBPosition";
 import { DBPositionHistory } from "../database/models/DBPositionHistory";
 import { alertViaTelegram } from "../telegram";
 import { Currency, CurrencyAmount } from "@uniswap/sdk-core/dist/entities";
+import SwapHelper from "./SwapHelper";
 
 const debug = Debug("unibalancer:helpers:PositionManager");
 
@@ -52,7 +53,7 @@ export default class PositionManager {
 
     static readonly MAX_UINT128 = new Decimal(2).pow(128).sub(1).toBigIntString(0);
 
-    private static calculateTicks(poolInfo: PoolInfo): TickUpperAndLower {
+    static calculateTicks(poolInfo: PoolInfo): TickUpperAndLower {
         //const tickPrice = tickToPrice(WETH_TOKEN, USDC_TOKEN, poolInfo.tick);
         //const realPrice = ( BigInt( poolInfo.sqrtPriceX96.toString() ) / BigInt( 2**96 ) ) ** BigInt( 2 );
         const realPrice = PriceHelper.sqrtRatioX96ToPrice(WETH_TOKEN, USDC_TOKEN, poolInfo.sqrtPriceX96);
@@ -63,9 +64,9 @@ export default class PositionManager {
 
         //debug( "tickPrice=%s, realPrice=%s", tickPrice.toFixed(), realPrice.toFixed() );
 
-        const halfRange = new Decimal( RANGE_PERCENT ).div( 2 );
-        const upFraction = new Decimal( 100 ).plus(halfRange).div(100);
-        const downFraction = new Decimal( 100 ).minus(halfRange).div(100);
+        const halfRange = new Decimal(RANGE_PERCENT).div(2);
+        const upFraction = new Decimal(100).plus(halfRange).div(100);
+        const downFraction = new Decimal(100).minus(halfRange).div(100);
 
         debug("halfRange=%s", halfRange);
 
@@ -199,7 +200,7 @@ export default class PositionManager {
         const {
             pool,
             poolInfo
-        } = await PoolHelper.getWethUsdcPoolAndPoolinfo();
+        } = await PoolHelper.getWethUsdcPoolAndPoolinfo(WANTED_FEE_AMOUNT);
 
         // Get the tecks
         let tickUpperAndLower: TickUpperAndLower;
@@ -228,10 +229,14 @@ export default class PositionManager {
             }
         }
 
-
-
         // Get the amount we have to swap
-        const amountToSwap = LiquidityCalc.getRatio(wethBalance, usdcBalance, placeholderPosition);
+        const { amountToSwap, swapPool} = await LiquidityCalc.getRatio(
+            wethBalance,
+            usdcBalance,
+            placeholderPosition.tickUpper,
+            placeholderPosition.tickLower,
+            placeholderPosition.pool
+        );
 
         // Do we have to swap?
         if (amountToSwap.greaterThan(0)) {
@@ -243,7 +248,7 @@ export default class PositionManager {
             debug("tokenToSwapTo=%s, amountToSwapDecimal=%s", tokenToSwapTo.name, amountToSwapDecimal);
 
             // Swap now
-            await swapToken(tokenToSwapFrom, tokenToSwapTo, amountToSwapDecimal);
+            await swapToken(tokenToSwapFrom, tokenToSwapTo, amountToSwapDecimal, swapPool.fee);
 
             // Re-get the balances
             [wethBalance, usdcBalance] = await BalanceHelpers.adjustedWethUsdcBalanceAsCurrencyAmount();
@@ -516,8 +521,11 @@ USDC amount: %s (%s%%)`,
 
             debug("collect results=", collectResults);
 
+            // The fee
+            const feeAmount = Number(position.fee);
+
             // Get the pool
-            const poolAndPoolInfo = await PoolHelper.getWethUsdcPoolAndPoolinfo();
+            const poolAndPoolInfo = await PoolHelper.getWethUsdcPoolAndPoolinfo(feeAmount);
 
             const { pool } = poolAndPoolInfo;
 
@@ -546,7 +554,7 @@ USDC amount: %s (%s%%)`,
 
             debug("price=%s, numerator=%s, denominator=%s, priceDecimal=%s", price.toFixed(), price.numerator, price.denominator, price.toDecimal());
 
-            const [ tokensOwed0, tokensOwed1 ] = collectResults;
+            const [tokensOwed0, tokensOwed1] = collectResults;
 
             debug("tokensOwed0=%s, tokensOwed1=%s", tokensOwed0, tokensOwed1);
 

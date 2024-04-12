@@ -1,37 +1,31 @@
 import Decimal from "decimal.js";
 
 import Debug from 'debug';
-import { Currency, CurrencyAmount, Fraction } from "@uniswap/sdk-core";
-import { Position, SqrtPriceMath, TickMath } from "@uniswap/v3-sdk";
+import { Currency, CurrencyAmount, Fraction, Token } from "@uniswap/sdk-core";
+import { Pool, Position, SqrtPriceMath, TickMath } from "@uniswap/v3-sdk";
 import JSBI from "jsbi";
+import SwapHelper from "./SwapHelper";
+import PoolHelper from "./PoolHelper";
 
 const debug = Debug("unibalancer:helpers:LiquidityCalc");
+
+
+export interface GetRatioReturn<T extends Token> {
+    swapPool: Pool;
+    amountToSwap: CurrencyAmount<T>;
+}
 
 export default class LiquidityCalc {
     private constructor() {
 
     }
 
-    static getLiquidityYFromX(x: Decimal, price: Decimal, priceHigh: Decimal, priceLow: Decimal): Decimal {
-
-        const L = x.times(
-            Decimal.sqrt(price)
-                .mul(Decimal.sqrt(priceHigh))
-                .div(Decimal.sqrt(priceHigh).minus(Decimal.sqrt(price)))
-        );
-
-        debug("L=%s", L);
-
-        const y = L.times(Decimal.sqrt(price).minus(Decimal.sqrt(priceLow)));
-
-        debug("y=%s", y);
-
-        return (y);
-    }
-
-    static calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean): Fraction {
-        const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
-        const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
+    static calculateOptimalRatio(tickUpper: number,
+        tickLower: number,
+        sqrtRatioX96: JSBI,
+        zeroForOne: boolean): Fraction {
+        const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(tickUpper);
+        const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(tickLower);
 
         debug("upperSqrtRatioX96=%s, lowerSqrtRatioX96=%s", upperSqrtRatioX96, lowerSqrtRatioX96);
 
@@ -61,7 +55,7 @@ export default class LiquidityCalc {
         return optimalRatio;
     }
 
-    static calculateRatioAmountIn<T extends Currency>(optimalRatio: Fraction,
+    static calculateRatioAmountIn<T extends Token>(optimalRatio: Fraction,
         inputTokenPrice: Fraction,
         inputBalance: CurrencyAmount<T>,
         outputBalance: CurrencyAmount<T>): CurrencyAmount<T> {
@@ -79,32 +73,37 @@ export default class LiquidityCalc {
         return CurrencyAmount.fromRawAmount(inputBalance.currency, amountToSwapRaw.quotient);
     }
 
-    static getRatio<T extends Currency>(token0Balance: CurrencyAmount<T>,
+    static async getRatio<T extends Token>(token0Balance: CurrencyAmount<T>,
         token1Balance: CurrencyAmount<T>,
-        position: Position) {
+        tickUpper: number,
+        tickLower: number,
+        positionPool: Pool
+    ): Promise<GetRatioReturn<T>> {
         // See which token comes first
         if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
             debug("Switching position");
             [token0Balance, token1Balance] = [token1Balance, token0Balance];
         }
 
-        let preSwapOptimalRatio = this.calculateOptimalRatio(position, position.pool.sqrtRatioX96, true);
+        let preSwapOptimalRatio = this.calculateOptimalRatio(tickUpper, tickLower, positionPool.sqrtRatioX96, true);
+
+        //debug( "preSwapOptimalRatio=%s", preSwapOptimalRatio.toFixed(18) );
 
         // set up parameters according to which token will be swapped
-        let zeroForOne;
+        let zeroForOne : boolean;
 
-        if (position.pool.tickCurrent > position.tickUpper) {
+        if (positionPool.tickCurrent > tickUpper) {
             debug("Tick current exceeds position");
             zeroForOne = true;
         }
-        else if (position.pool.tickCurrent < position.tickLower) {
+        else if (positionPool.tickCurrent < tickLower) {
             debug("Tick current under position");
             zeroForOne = false;
         }
         else {
             zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(preSwapOptimalRatio);
 
-            debug("Last cast");
+            debug("zeroForOne before=%s", zeroForOne );
 
             if (!zeroForOne)
                 preSwapOptimalRatio = preSwapOptimalRatio.invert();
@@ -116,17 +115,30 @@ export default class LiquidityCalc {
             ? [token0Balance, token1Balance]
             : [token1Balance, token0Balance];
 
+        // Get the pool to use for the swerp
+        const bestFeeAmount = await SwapHelper.getBestFeeTier(inputBalance.currency, outputBalance.currency, inputBalance);
+
+        debug("bestFeeAmount=", bestFeeAmount);
+
+        const { feeAmount } = bestFeeAmount;
+
+        // Get the pewl
+        const swapPoolAndPoolInfo = await PoolHelper.getWethUsdcPoolAndPoolinfo(feeAmount);
+        const { pool: swapPool } = swapPoolAndPoolInfo;
 
         let optimalRatio = preSwapOptimalRatio;
         let exchangeRate = zeroForOne
-            ? position.pool.token0Price
-            : position.pool.token1Price;
+            ? swapPool.token0Price
+            : swapPool.token1Price;
 
         const amountToSwap = this.calculateRatioAmountIn(optimalRatio, exchangeRate, inputBalance, outputBalance);
 
-        debug("inputToken=%s, outputToken=%s", inputBalance.currency.name, outputBalance.currency.name  );
-        debug("amountToSwap numerator=%s, denominator=%s, quotient=%s", amountToSwap.numerator, amountToSwap.denominator, amountToSwap.quotient);
+        debug("inputToken=%s, outputToken=%s", inputBalance.currency.name, outputBalance.currency.name);
+        debug("amountToSwap numerator=%s, denominator=%s, quotient=%s", amountToSwap.numerator, amountToSwap.denominator, amountToSwap.toFixed());
 
-        return amountToSwap;
+        return ({
+            amountToSwap,
+            swapPool
+        });
     }
 }

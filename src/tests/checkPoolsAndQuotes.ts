@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import { provider, userWallet } from '../network';
 import PriceHelper from '../helpers/PriceHelper';
 import SwapHelper from '../helpers/SwapHelper';
+import { CurrencyAmount } from '@uniswap/sdk-core';
 
 (async function() {
     const poolContractLow = PoolHelper.getPoolContract(WETH_TOKEN, USDC_TOKEN, FeeAmount.LOW);
@@ -64,8 +65,8 @@ import SwapHelper from '../helpers/SwapHelper';
         0
       );
 
-      const bestTierWeth = await SwapHelper.getBestFeeTier(WETH_TOKEN, USDC_TOKEN, new Decimal(1));
-      const bestTierUsdc = await SwapHelper.getBestFeeTier(USDC_TOKEN, WETH_TOKEN, new Decimal(3000));
+      const bestTierWeth = await SwapHelper.getBestFeeTier(WETH_TOKEN, USDC_TOKEN, CurrencyAmount.fromRawAmount(WETH_TOKEN, "1") );
+      const bestTierUsdc = await SwapHelper.getBestFeeTier(USDC_TOKEN, WETH_TOKEN, CurrencyAmount.fromRawAmount(USDC_TOKEN, "3000"));
 
       console.log("bestTierWeth=", bestTierWeth );
       console.log("bestTierUsdc=", bestTierUsdc );

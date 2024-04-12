@@ -1,4 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
+import { FeeAmount } from '@uniswap/v3-sdk';
 import 'dotenv/config';
 import { toLower } from 'lodash';
 
@@ -43,7 +44,7 @@ export const LOG_LEVEL: string = process.env.LOG_LEVEL || "info";
 
 export const TOLERANCE_IN_MINUTES: number = Number(process.env.TOLERANCE_IN_MINUTES) || 5;
 
-export const WANTED_TICK_SPACING = IS_PRODUCTION ? (Number(process.env.WANTED_TICK_SPACING) || 4) : 64;
+export const WANTED_FEE_AMOUNT = FeeAmount.MEDIUM;
 
 export const RANGE_PERCENT = Number(process.env.RANGE_PERCENT) || 10;
 
