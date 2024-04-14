@@ -6,6 +6,8 @@ import Debug from 'debug';
 import Decimal from "decimal.js";
 import { WETH_TOKEN } from "../constants";
 import { DBProperty } from "../database";
+import Bluebird from "bluebird";
+import logger from "../logger";
 const debug = Debug("unibalancer:helpers:TransactionHelpers");
 
 export default class TransctionHelper {
@@ -23,7 +25,7 @@ export default class TransctionHelper {
         await DBProperty.addDeficits("weth", ethUsed, reason);
     }
 
-    static async resolveTransactionResponse(response: TransactionResponse): Promise<ClientTransactionResponse> {
+    private static async resolveTransactionResponsePrivate(response: TransactionResponse): Promise<ClientTransactionResponse> {
         let receipt: TransactionReceipt | null = null;
 
         while (receipt === null) {
@@ -33,6 +35,7 @@ export default class TransctionHelper {
                 debug("resolveTransactionResponse receipt=", receipt);
 
                 if (receipt === null) {
+                    await Bluebird.delay(10);
                     continue
                 }
 
@@ -46,6 +49,17 @@ export default class TransctionHelper {
 
         throw new Error("Could not get transaction receipt.");
     }
+
+    static resolveTransactionResponse = (response: TransactionResponse) : Promise<ClientTransactionResponse>=>
+        // Try and resolve it
+        Bluebird.resolve( this.resolveTransactionResponsePrivate(response) )
+        // Within the time alloted
+        .timeout(5*60*1000)
+        // Or exit the program
+        .catch( e=>{
+            logger.error("resolveTransactionResponse fatal error", e);
+            process.exit(1);
+        });
 
     static async sendTransaction(transaction: TransactionRequest, wallet : Wallet = userWallet): Promise<ClientTransactionResponse> {
         const response = await wallet.sendTransaction(transaction)
