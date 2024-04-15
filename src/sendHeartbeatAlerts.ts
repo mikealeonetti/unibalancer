@@ -142,7 +142,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             : new Decimal(0);
 
         // The percent for ema current
-        let currentPercentEma = percentRewards;
+        let currentPercentEma = estPercentPerDay;
         let currentPercentEmaCounter = new Decimal(1);
 
         // Get the new EMA value
@@ -156,7 +156,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             // average = average + (value - average) / min(counter, FACTOR)
             currentPercentEma =
                 // (value - average)
-                percentRewards.minus(average)
+                estPercentPerDay.minus(average)
                     // min(counter, FACTOR)
                     .div(Decimal.min(currentPercentEmaCounter, EMA_FACTOR))
                     // average +
