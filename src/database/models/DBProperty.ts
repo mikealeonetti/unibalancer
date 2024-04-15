@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
+import { toUpper } from "lodash";
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from "sequelize";
 import { sequelize } from "../common";
-import { toUpper } from "lodash";
 import { DBDeficitHistory } from "./DBDeficitHistory";
 
 import Debug from 'debug';
@@ -18,6 +18,7 @@ const CURRENT_DEFICIT_KEY = "CurrentDeficit";
 const CUMULATIVE_DEFICIT_KEY = "CumulativeDeficit";
 const CURRENT_TOKEN_HOLDINGS_KEY = "CurrentHoldings";
 const CUMULATIVE_TOKEN_HOLDINGS_KEY = "CumulativeHoldings";
+const CUMULATIVE_FEES_RECEIVED = "CumulativeFeesReceived";
 
 // order of InferAttributes & InferCreationAttributes is important.
 export class DBProperty extends Model<InferAttributes<DBProperty>, InferCreationAttributes<DBProperty>> {
@@ -29,25 +30,79 @@ export class DBProperty extends Model<InferAttributes<DBProperty>, InferCreation
 	declare updatedAt: CreationOptional<Date>;
 
 	declare static getByKey: (key: string) => Promise<DBProperty | null>;
+	declare static getByKeyAndSymbol: (key: string, symbol: string) => Promise<DBProperty | null>;
+	declare static keyPlusSymbol: (key: string, symbol: string) => string;
+
 	declare static addDeficits: (currencySymbol: string, feeAmount: Decimal, reason: string) => Promise<DBProperty>;
 	declare static getDeficits: (currencySymbol: string) => Promise<Decimal>;
 	declare static paybackDeficits: (currencySymbol: string, credits: Decimal) => Promise<Decimal>;
+
 	declare static getCurrentDeficitKeyFromSymbol: (currencySymbol: string) => string;
 	declare static getCumulativeDeficitKeyFromSymbol: (currencySymbol: string) => string;
+
 	declare static getTokenHoldingsKeyFromSymbol: (currencySymbol: string, keyType: KeyType) => string;
 	declare static getTokenHoldings: (currencySymbol: string) => Promise<Decimal>;
 	declare static addTokenHoldings: (currencySymbol: string, amount: Decimal, positionId: string) => Promise<void>;
+
+	declare static addCumulativeFeesReceived: (currencySymbol: string, amount: Decimal) => Promise<void>;
+	declare static getCumulativeFeesReceived: (currencySymbol: string) => Promise<Decimal>;
 }
 
+DBProperty.keyPlusSymbol = function (key: string, symbol: string): string {
+	return (key + "-" + toUpper(symbol));
+};
+
+DBProperty.getCumulativeFeesReceived = async function (currencySymbol: string): Promise<Decimal> {
+	// The current value
+	const property = await DBProperty.getByKeyAndSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol);
+
+	// Do we have a property already?
+	if (property) {
+		// Return the value
+		return new Decimal(property.value);
+	}
+
+	// Return zero
+	return new Decimal(0);
+};
+
+DBProperty.addCumulativeFeesReceived = async function (currencySymbol: string, feeAmount: Decimal): Promise<void> {
+	// Current value
+	let property = await DBProperty.getByKeyAndSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol);
+
+	// Create if no have
+	if( property ) {
+		// Add it
+		property.value = new Decimal( property.value ).plus( feeAmount ).toString();
+	}
+	else {
+		// Set it
+		property = new DBProperty( {
+			key : this.keyPlusSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol),
+			value : feeAmount.toString()
+		}) ;
+	}
+
+	// Save it
+	await property.save();
+};
+
+DBProperty.getByKeyAndSymbol = async function (key: string, symbol: string): Promise<DBProperty | null> {
+	// The key
+	key = this.keyPlusSymbol(key, symbol);
+
+	// Now fetch and return
+	return this.getByKey(key);
+};
 
 DBProperty.getTokenHoldingsKeyFromSymbol = function (currenySymbol: string, keyType: KeyType) {
 	if (keyType == KeyType.Cumulative)
 		return CUMULATIVE_TOKEN_HOLDINGS_KEY + "-" + toUpper(currenySymbol);
 
 	return CURRENT_TOKEN_HOLDINGS_KEY + "-" + toUpper(currenySymbol);
-}
+};
 
-DBProperty.getTokenHoldings = async function(currencySymbol: string): Promise<Decimal> {
+DBProperty.getTokenHoldings = async function (currencySymbol: string): Promise<Decimal> {
 	// The key
 	const key = DBProperty.getTokenHoldingsKeyFromSymbol(currencySymbol, KeyType.Current);
 
@@ -64,7 +119,7 @@ DBProperty.getTokenHoldings = async function(currencySymbol: string): Promise<De
 	return new Decimal(0);
 };
 
-DBProperty.addTokenHoldings = async function(currencySymbol: string, amount: Decimal, positionId: string): Promise<void> {
+DBProperty.addTokenHoldings = async function (currencySymbol: string, amount: Decimal, positionId: string): Promise<void> {
 	// Makes no sense to increment
 	if (amount.lte(0))
 		return;
@@ -103,8 +158,8 @@ DBProperty.addTokenHoldings = async function(currencySymbol: string, amount: Dec
 	// Also add a profit history
 	const profitHistoryPromise = DBProfitHistory.create({
 		positionId,
-		token : toUpper( currencySymbol ), 
-		amount : amount.toString()
+		token: toUpper(currencySymbol),
+		amount: amount.toString()
 	});
 
 	// Save it
@@ -173,7 +228,7 @@ DBProperty.addDeficits = async function (currencySymbol: string, feeAmount: Deci
 		cumulativeDeficits.value = feeAmount.add(cumulativeDeficits.value).toString();
 
 	const deficitHistoryPromise = await DBDeficitHistory.create({
-		token: toUpper( currencySymbol ),
+		token: toUpper(currencySymbol),
 		amount: feeAmount.toString(),
 		reason
 	});

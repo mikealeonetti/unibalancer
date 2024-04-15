@@ -2,7 +2,7 @@ import util from 'util';
 
 import { CollectOptions, NonfungiblePositionManager } from "@uniswap/v3-sdk";
 import Debug from 'debug';
-import { NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, TAKE_PROFIT_PERCENT } from "./constants";
+import { NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, REFUSE_COLLECTION_GAS_ABOVE, TAKE_PROFIT_PERCENT } from "./constants";
 import { DBProperty } from "./database";
 import { DBPosition } from "./database/models/DBPosition";
 import { DBPositionHistory } from "./database/models/DBPositionHistory";
@@ -10,7 +10,7 @@ import { PositionInfo } from "./helpers/PositionManager";
 import { getSymbolFromTokenAddress } from "./helpers/TokenHelper";
 import TransactionHelper from "./helpers/TransactionHelper";
 import logger from "./logger";
-import { userWallet } from "./network";
+import { provider, userWallet } from "./network";
 import { alertViaTelegram } from "./telegram";
 import Decimal from 'decimal.js';
 import BalanceHelpers from './helpers/BalanceHelpers';
@@ -33,7 +33,7 @@ export async function calculateProfitsAndAdjustDeficits(
     //tokensOwed0 = new Decimal( 0.5 );
     //tokensOwed1 = new Decimal( 100 );
 
-    const positionIdString = String( positionId );
+    const positionIdString = String(positionId);
 
     if (dbPosition) {
         dbPosition.lastRewardsCollected = new Date();
@@ -63,6 +63,9 @@ export async function calculateProfitsAndAdjustDeficits(
     const [profit0, profit1] = await Promise.all([
         DBProperty.paybackDeficits(symbol0, tokensOwed0),
         DBProperty.paybackDeficits(symbol1, tokensOwed1),
+        // We don't care about returns from here
+        DBProperty.addCumulativeFeesReceived(symbol0, tokensOwed0),
+        DBProperty.addCumulativeFeesReceived(symbol1, tokensOwed1),
     ]);
 
     debug("before tokensOwed1=%s, profitB=%s, profit0=%s, profit1=%s", tokensOwed0, tokensOwed1, profit0, profit1);
@@ -88,7 +91,7 @@ export async function calculateProfitsAndAdjustDeficits(
     });
 }
 
-export default async function collectFees(positionInfo: PositionInfo): Promise<void> {
+export default async function collectFees(positionInfo: PositionInfo): Promise<boolean> {
     const { positionId, tokensOwed0, tokensOwed1, poolAndPoolInfo } = positionInfo;
     const positionIdString = String(positionId);
 
@@ -110,6 +113,17 @@ export default async function collectFees(positionInfo: PositionInfo): Promise<v
         value: value,
         from: userWallet.address
     };
+
+    // See if it's going to cost too much
+    const estimatedGas = await TransactionHelper.estimateTotalGasUsedInEth(transaction);
+
+    debug("Estimated gas to collect %s vs %s", estimatedGas, REFUSE_COLLECTION_GAS_ABOVE);
+
+    if (estimatedGas.gt(REFUSE_COLLECTION_GAS_ABOVE)) {
+        logger.warn("Gas %s is too high to collect. Refusing to collect.", estimatedGas.toFixed());
+        return (false);
+    }
+
 
     const clientTransactionResponse = await TransactionHelper.sendTransaction(transaction);
 
@@ -159,4 +173,7 @@ Profits WETH: %s (%s USDC)`,
 
     // Wrap eth where necessary
     await BalanceHelpers.unwrapEthToMaintainEth();
+
+    // Truly we did it!
+    return (true);
 }

@@ -55,8 +55,9 @@ export const MINIMUM_GAS_TO_SAVE = Number(process.env.MINIMUM_GAS_TO_SAVE) || 0.
 
 export const MINIMUM_AMOUNT_TO_DEPOSIT_DOLLARS = Number(process.env.MINIMUM_AMOUNT_TO_DEPOSIT_DOLLARS) || 5;
 
-export const REBALANCE_PER_HOUR_COUNT: number = Number(process.env.REBALANCE_PER_HOUR_COUNT) || 0
-export const REBALANCE_AT_PERCENT: number = Number(process.env.REBALANCE_AT_PERCENT) || 1
+export const REBALANCE_PER_HOUR_COUNT: number = Number(process.env.REBALANCE_PER_HOUR_COUNT) || 0;
+export const REBALANCE_AT_PERCENT: number = Number(process.env.REBALANCE_AT_PERCENT) || 1;
+export const REFUSE_COLLECTION_GAS_ABOVE : number = Number(process.env.REFUSE_COLLECTION_GAS_ABOVE) || 0.005;
 
 export const IS_DEBUG_MODE: Boolean = process.env.IS_DEBUG_MODE != null && toLower(process.env.IS_DEBUG_MODE) == "true" || false;
 
@@ -67,3 +68,5 @@ export const HEARTBEAT_FREQUENCY_MINUTES = Number(process.env.HEARTBEAT_FREQUENC
 export const MAX_RETRIES_SETTING = 5;
 
 export const MAX_CONCURRENCY : number = 5;
+
+export const SAVE_BALANCE_EVERY_HOURS = Number(process.env.SAVE_BALANCE_EVERY_HOURS) || 24;

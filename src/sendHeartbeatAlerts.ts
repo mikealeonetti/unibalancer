@@ -16,6 +16,7 @@ import BalanceHelpers from "./helpers/BalanceHelpers";
 import { userWallet } from "./network";
 import usdcContract from "./contracts/usdcContract";
 import { wethContract } from "./contracts/WethContract";
+import { DBBalance } from "./database/models/DBBalance";
 
 const debug = Debug("unibalancer:sendHeartbeatAlerts");
 
@@ -46,10 +47,10 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         wethContract.balanceOf(userWallet.address),
         usdcContract.balanceOf(userWallet.address),
     ]);
-    
+
     // Loop each position
     for (const positionInfo of positionInfos) {
-        const { 
+        const {
             positionId,
             tokensOwed0,
             tokensOwed1,
@@ -59,7 +60,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         } = positionInfo;
 
         const { pool } = positionInfo.poolAndPoolInfo;
-        const positionIdString = String( positionId );
+        const positionIdString = String(positionId);
 
         const token0Symbol = getSymbolFromTokenAddress(pool.token0.address);
         const token1Symbol = getSymbolFromTokenAddress(pool.token1.address);
@@ -71,7 +72,8 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             tokenAHoldings,
             tokenBHoldings,
             currentDeficitToken0,
-            currentDeficitToken1
+            currentDeficitToken1,
+            firstBalanceEver
         ] = await Promise.all([
             DBPosition.getByPositionIdString(positionIdString),
             DBPositionHistory.getLatestByPositionIdString(positionIdString),
@@ -79,6 +81,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             DBProperty.getTokenHoldings(token1Symbol),
             DBProperty.getDeficits("weth"),
             DBProperty.getDeficits("usdc"),
+            DBBalance.findOne({ order: [["createdAt", "ASC"]] })
         ]);
 
         if (!dbPosition) {
@@ -116,30 +119,35 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
 
         debug("calculateLastDate=%s, millisSinceLastDate=%s, hoursSinceLastDate=%s, percentPerHour=%s", calculateLastDate, millisSinceLastDate, hoursSinceLastDate, percentPerHour);
 
-        const enteredPriceUSDC = new Decimal( dbPositionHistory.enteredPriceUSDC );
-        const previousReceivedFeesTokenA = new Decimal( dbPosition.previousOwedFeesTokenA );
-        const previousReceivedFeesTokenB = new Decimal( dbPosition.previousOwedFeesTokenB );
-        const previousReceivedFeesTotalUSDC = new Decimal( dbPosition.previousOwedFeesTotalUSDC );
-        const distanceFromEnteredPriceUSDC = totalStakeValueUsdcAsDecimal.minus( enteredPriceUSDC ).div( enteredPriceUSDC ).times( 100 );
+        const enteredPriceUSDC = new Decimal(dbPositionHistory.enteredPriceUSDC);
+        const previousReceivedFeesTokenA = new Decimal(dbPosition.previousOwedFeesTokenA);
+        const previousReceivedFeesTokenB = new Decimal(dbPosition.previousOwedFeesTokenB);
+        const previousReceivedFeesTotalUSDC = new Decimal(dbPosition.previousOwedFeesTotalUSDC);
+        const distanceFromEnteredPriceUSDC = totalStakeValueUsdcAsDecimal.minus(enteredPriceUSDC).div(enteredPriceUSDC).times(100);
 
-        const tokenAHoldingsUSDC = tokenAHoldings.times( priceAsDecimal );
-        const totalTokenHoldings = tokenAHoldingsUSDC.plus( tokenBHoldings );
+        const tokenAHoldingsUSDC = tokenAHoldings.times(priceAsDecimal);
+        const totalTokenHoldings = tokenAHoldingsUSDC.plus(tokenBHoldings);
 
         const currentDeficitToken0AsUsdc = currentDeficitToken0.times(priceAsDecimal);
         const currentDeficitTotalAsUsdc = currentDeficitToken0AsUsdc.plus(currentDeficitToken1);
 
+        const firstBalanceEverAsDecimal = firstBalanceEver ? new Decimal( firstBalanceEver.totalUsdc ) : new Decimal(0);
+        const balancePercentSinceBeginningBalance = firstBalanceEverAsDecimal.gt(0) ?
+            totalStakeValueUsdcAsDecimal.minus(firstBalanceEverAsDecimal).div(firstBalanceEverAsDecimal).times(100)
+            : new Decimal(0);
+
         // Save the last price
-        await dbPosition.update({ 
+        await dbPosition.update({
             previousPrice: positionInfo.price.toFixed(),
-            previousOwedFeesTokenA : tokensOwed0.toString(),
-            previousOwedFeesTokenB : tokensOwed1.toString(),
-            previousOwedFeesTotalUSDC : totalTokensOwedInUsdc.toString()
+            previousOwedFeesTokenA: tokensOwed0.toString(),
+            previousOwedFeesTokenB: tokensOwed1.toString(),
+            previousOwedFeesTotalUSDC: totalTokensOwedInUsdc.toString()
         });
 
-        let lastRebalanceString : string = "Never";
-        
-        if(dbPosition.lastRewardsCollected)
-            lastRebalanceString = `${dbPosition.lastRewardsCollected.toLocaleString()} (${formatDistance( dbPosition.lastRewardsCollected, now )})`
+        let lastRebalanceString: string = "Never";
+
+        if (dbPosition.lastRewardsCollected)
+            lastRebalanceString = `${dbPosition.lastRewardsCollected.toLocaleString()} (${formatDistance(dbPosition.lastRewardsCollected, now)})`
 
         // Prepare the text
         const text = util.format(`Position [%s]
@@ -155,7 +163,7 @@ Rewards USDC: %s (%s)
 Rewards WETH: %s (%s USDC, %s)
 Est Per Day: %s%%
 
-Stake total: %s USDC (%s%% from entry)
+Stake total: %s USDC (%s%% from entry, %s%% overall)
 WETH amount: %s (%s USDC, %s%%)
 USDC amount: %s (%s%%)
 
@@ -174,23 +182,23 @@ Wallet WETH: %s (%s USDC)
 Wallet USDC: %s`,
             // Position key
             positionIdString,
-            
+
             // Created
             dbPosition.createdAt.toLocaleString(), formatDistance(dbPosition.createdAt, now),
 
             // Price
-            positionInfo.price.toFixed(4), plusOrMinusStringFromDecimal( movementPercent, 2 ),
+            positionInfo.price.toFixed(4), plusOrMinusStringFromDecimal(movementPercent, 2),
             lowerPrice.toFixed(4), positionInfo.price.subtract(lowerPrice).divide(positionInfo.price).multiply(100).toFixed(2),
             upperPrice.toFixed(4), upperPrice.subtract(positionInfo.price).divide(positionInfo.price).multiply(100).toFixed(2),
 
             // Rewards total
-            totalTokensOwedInUsdc.toFixed(2), percentRewards.toFixed(2), plusOrMinusStringFromDecimal( totalTokensOwedInUsdc.minus( previousReceivedFeesTotalUSDC ), 2 ),
-            tokensOwed1.toFixed(2), plusOrMinusStringFromDecimal( tokensOwed1.minus( previousReceivedFeesTokenB ), 2 ),
-            tokensOwed0, tokensOwed0InUsdc.toFixed(2), plusOrMinusStringFromDecimal( tokensOwed0.minus( previousReceivedFeesTokenA ) ),
+            totalTokensOwedInUsdc.toFixed(2), percentRewards.toFixed(2), plusOrMinusStringFromDecimal(totalTokensOwedInUsdc.minus(previousReceivedFeesTotalUSDC), 2),
+            tokensOwed1.toFixed(2), plusOrMinusStringFromDecimal(tokensOwed1.minus(previousReceivedFeesTokenB), 2),
+            tokensOwed0, tokensOwed0InUsdc.toFixed(2), plusOrMinusStringFromDecimal(tokensOwed0.minus(previousReceivedFeesTokenA)),
             estPercentPerDay.toFixed(2),
 
             // Stake total
-            totalStakeValueUsdcAsDecimal.toFixed(2), plusOrMinusStringFromDecimal( distanceFromEnteredPriceUSDC, 2 ),
+            totalStakeValueUsdcAsDecimal.toFixed(2), plusOrMinusStringFromDecimal(distanceFromEnteredPriceUSDC, 2), plusOrMinusStringFromDecimal(balancePercentSinceBeginningBalance, 2),
             position.amount0.toFixed(), stakeAmountAPrice.toFixed(2), stakeAmountAPrice.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
             position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
 

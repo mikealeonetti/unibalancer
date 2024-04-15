@@ -41,6 +41,11 @@ export default async function (positionInfos: PositionInfo[]) {
             logger.warn("Cannot find position [%s] to check for re-deposit.", positionIdString);
             continue;
         }
+        // Do not touch anything out of range
+        if (dbPosition.outOfRangeSince != null) {
+            logger.info("Position [%s] of of range. Refusing to collect rewards.", positionIdString);
+            continue;
+        }
 
         debug("position.fees.tokenA=%s, position.fees.tokenB=%s", tokensOwed0, tokensOwed1);
 
@@ -67,35 +72,39 @@ export default async function (positionInfos: PositionInfo[]) {
         debug("lastRewardsCollected=%s, millisSinceRewardsCollected=%s, hoursSinceLastRewardsCollected=%s", lastRewardsCollected, millisSinceRewardsCollected, hoursSinceLastRewardsCollected);
 
         // Should we
-        let shouldTriggerRedeposit = false;
+        let shouldCollectFees = false;
 
-        debug( "REBALANCE_AT_PERCENT=%s, REBALANCE_PER_HOUR_COUNT=%s", REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT);
+        debug("REBALANCE_AT_PERCENT=%s, REBALANCE_PER_HOUR_COUNT=%s", REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT);
 
         // Do we have a trigger?
-        if (REBALANCE_AT_PERCENT>0 && percentOfOpeningPrice.gte(REBALANCE_AT_PERCENT)) {
+        if (REBALANCE_AT_PERCENT > 0 && percentOfOpeningPrice.gte(REBALANCE_AT_PERCENT)) {
             logger.info("Percent of opening price is greater than 1%. Trigger re-deposit.");
-            shouldTriggerRedeposit = true;
+            shouldCollectFees = true;
         }
-        else if (REBALANCE_PER_HOUR_COUNT>0 && hoursSinceLastRewardsCollected >= REBALANCE_PER_HOUR_COUNT) {
+        else if (REBALANCE_PER_HOUR_COUNT > 0 && hoursSinceLastRewardsCollected >= REBALANCE_PER_HOUR_COUNT) {
             logger.info("Over 24 hours since last re-deposit. Trigger re-deposit.");
-            shouldTriggerRedeposit = true;
+            shouldCollectFees = true;
         }
 
         // Is it greater than 1%?
-        if (shouldTriggerRedeposit) {
+        if (shouldCollectFees) {
             // First trigger collection
             logger.debug("Collecting rewards.");
 
-            await collectFees(positionInfo);
+            const shouldTriggerRedeposit = await collectFees(positionInfo);
 
-            // Now redeposit
-            logger.debug("Re-depositing.");
+            if (shouldTriggerRedeposit) {
+                // Now redeposit
+                logger.debug("Re-depositing.");
 
-            dbPosition.redepositAttemptsRemaining = 10;
-            await dbPosition.save();
+                dbPosition.redepositAttemptsRemaining = 1;
+                await dbPosition.save();
+            }
+            else
+                debug("Refusing to trigger redeposit.");
         }
         else {
-            debug("No re-deposit conditions met.");
+            debug("No fee collection conditions met.");
         }
     }
 }

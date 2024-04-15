@@ -9,49 +9,53 @@ import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedepos
 import PositionManager from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
 import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
+import shouldSaveBalance from "./shouldSaveBalance";
 
-const debug = Debug( "unibalancer:engine" );
+const debug = Debug("unibalancer:engine");
 
 export default async function (): Promise<void> {
     // The main async event loop
     while (true) {
         try {
-            debug( "minute executed" );
+            debug("minute executed");
             // Get all open positions
             let openPositions = await PositionManager.getAllPositions();
 
-            debug( "openPositions=", openPositions );
+            debug("openPositions=", openPositions);
 
             // Cross check the database
             await resyncDatabasePositions(openPositions);
 
             // Close any positions out of range
-            openPositions = await closeOutOfRangePositions( openPositions );
+            openPositions = await closeOutOfRangePositions(openPositions);
 
             //debug( "New open positions=", openPositions );
 
+            // Save balances
+            await shouldSaveBalance(openPositions);
+
             // Send heartbeats
             // This should probably go after
-            await sendHeartbeatAlerts(openPositions );
+            await sendHeartbeatAlerts(openPositions);
 
             // Do we have to trigger a re-deposit?
             await shouldTriggerRedeposit(openPositions);
 
             // Do we have no more positions open?
-            if( isEmpty(openPositions) ) {
-                logger.info( "No positions open. Attempting to open another one." );
+            if (isEmpty(openPositions)) {
+                logger.info("No positions open. Attempting to open another one.");
 
                 await PositionManager.mintOrIncreasePosition();
             }
 
             // Do we have any positions that need to be redeposited
             await checkForPositionsNeedingRedeposit(openPositions);
-       }
-       catch( e ) {
-        logger.error( "Error running minute." , e);
-       }
+        }
+        catch (e) {
+            logger.error("Error running minute.", e);
+        }
 
         // 1 minute
-        await Bluebird.delay(60*1000);
+        await Bluebird.delay(60 * 1000);
     }
 }

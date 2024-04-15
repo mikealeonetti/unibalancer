@@ -16,9 +16,9 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
     // Loop all
     for( const dbPosition of dbPositions ) {
         // Find in the positions
-        const psoitionInfo = positionInfos.find( p=>p.positionId.toString()==dbPosition.positionId );
+        const positionInfo = positionInfos.find( p=>p.positionId.toString()==dbPosition.positionId );
 
-        if( !psoitionInfo ) {
+        if( !positionInfo ) {
             // Didn't hav eit?
             logger.warn( "Could not find position [%s] but wants to be re-deposited.", dbPosition.positionId );
         }
@@ -32,6 +32,6 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         logger.info( "Attempting to re-deposit [%s]. %d attempts left.", dbPosition.positionId, dbPosition.redepositAttemptsRemaining );
 
         // Now attempt to re-deposit
-        await PositionManager.mintOrIncreasePosition( psoitionInfo );
+        await PositionManager.mintOrIncreasePosition( positionInfo );
     }
 }

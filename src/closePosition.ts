@@ -1,18 +1,18 @@
-import Debug from 'debug';
-import { DBPosition } from "./database/models/DBPosition";
-import { PositionInfo } from "./helpers/PositionManager";
-import { CollectOptions, NonfungiblePositionManager, RemoveLiquidityOptions } from '@uniswap/v3-sdk';
-import { NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, WITHDRAW_SLIPPAGE } from './constants';
-import Decimal from 'decimal.js';
 import { Percent } from '@uniswap/sdk-core';
-import { userWallet } from './network';
-import TransactionHelper from './helpers/TransactionHelper';
-import { calculateProfitsAndAdjustDeficits } from './collectFees';
-import { DBPositionHistory } from './database/models/DBPositionHistory';
+import { CollectOptions, NonfungiblePositionManager, RemoveLiquidityOptions } from '@uniswap/v3-sdk';
+import Debug from 'debug';
+import Decimal from 'decimal.js';
 import util from 'util';
-import { alertViaTelegram } from './telegram';
-import logger from './logger';
+import { calculateProfitsAndAdjustDeficits } from './collectFees';
+import { NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, WITHDRAW_SLIPPAGE } from './constants';
+import { DBPosition } from "./database/models/DBPosition";
+import { DBPositionHistory } from './database/models/DBPositionHistory';
 import BalanceHelpers from './helpers/BalanceHelpers';
+import { PositionInfo } from "./helpers/PositionManager";
+import TransactionHelper from './helpers/TransactionHelper';
+import logger from './logger';
+import { userWallet } from './network';
+import { alertViaTelegram } from './telegram';
 
 const debug = Debug("unibalancer:closePosition");
 
@@ -43,7 +43,7 @@ export default async function (positionInfo: PositionInfo, dbPosition: DBPositio
             recipient: userWallet.address,
         }
 
-        debug( "collectOptions=", collectOptions);
+        debug("collectOptions=", collectOptions);
 
         const removeLiquidityOptions: RemoveLiquidityOptions = {
             deadline: Math.floor(Date.now() / 1000) + 60 * 20,
@@ -85,7 +85,7 @@ export default async function (positionInfo: PositionInfo, dbPosition: DBPositio
         } = await calculateProfitsAndAdjustDeficits(positionInfo, null, dbPositionHistory);
 
         const priceAsDecimal = positionInfo.price.toDecimal();
-        
+
         // Do all of these dumb conversions
         const positionAmount0AsDecimal = position.amount0.toDecimal();
         const positionAmount1AsDecimal = position.amount1.toDecimal();
