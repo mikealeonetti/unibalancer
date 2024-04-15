@@ -5,22 +5,25 @@ import { DBProperty } from "./database";
 import Debug from 'debug';
 import Decimal from "decimal.js";
 import { HEARTBEAT_FREQUENCY_MINUTES } from "./constants";
+import { wethContract } from "./contracts/WethContract";
+import usdcContract from "./contracts/usdcContract";
+import { DBBalance } from "./database/models/DBBalance";
 import { DBPosition } from "./database/models/DBPosition";
 import { DBPositionHistory } from "./database/models/DBPositionHistory";
+import BalanceHelpers from "./helpers/BalanceHelpers";
 import { PositionInfo } from "./helpers/PositionManager";
 import { getSymbolFromTokenAddress } from "./helpers/TokenHelper";
 import logger from "./logger";
+import { userWallet } from "./network";
 import { alertViaTelegram } from "./telegram";
 import { plusOrMinusStringFromDecimal } from "./utils";
-import BalanceHelpers from "./helpers/BalanceHelpers";
-import { userWallet } from "./network";
-import usdcContract from "./contracts/usdcContract";
-import { wethContract } from "./contracts/WethContract";
-import { DBBalance } from "./database/models/DBBalance";
 
 const debug = Debug("unibalancer:sendHeartbeatAlerts");
 
 const HEARTBEAT_KEY = "lastHeartbeatAlert";
+const LAST_PERCENT_EMA_KEY = "LastPercentEMA";
+const EMA_FACTOR = 7 * 24; // 1 week
+const EMA_DELIMETER = ",";
 
 export default async function (positionInfos: PositionInfo[]): Promise<void> {
     // Right NOW!
@@ -67,21 +70,23 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
 
         // Get from the db
         const [
-            dbPosition,
-            dbPositionHistory,
-            tokenAHoldings,
-            tokenBHoldings,
-            currentDeficitToken0,
-            currentDeficitToken1,
-            firstBalanceEver
+            dbPosition, // 1
+            dbPositionHistory, // 2
+            tokenAHoldings, // 3
+            tokenBHoldings, // 4
+            currentDeficitToken0, // 5
+            currentDeficitToken1, // 6
+            firstBalanceEver, // 7
+            lastPercentEma // 8
         ] = await Promise.all([
-            DBPosition.getByPositionIdString(positionIdString),
-            DBPositionHistory.getLatestByPositionIdString(positionIdString),
-            DBProperty.getTokenHoldings(token0Symbol),
-            DBProperty.getTokenHoldings(token1Symbol),
-            DBProperty.getDeficits("weth"),
-            DBProperty.getDeficits("usdc"),
-            DBBalance.findOne({ order: [["createdAt", "ASC"]] })
+            DBPosition.getByPositionIdString(positionIdString), // 1
+            DBPositionHistory.getLatestByPositionIdString(positionIdString), // 2
+            DBProperty.getTokenHoldings(token0Symbol), // 3
+            DBProperty.getTokenHoldings(token1Symbol), // 4
+            DBProperty.getDeficits("weth"), // 5
+            DBProperty.getDeficits("usdc"), // 6
+            DBBalance.findOne({ order: [["createdAt", "ASC"]] }), // 7
+            DBProperty.getByKey(LAST_PERCENT_EMA_KEY) // 8
         ]);
 
         if (!dbPosition) {
@@ -113,7 +118,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         const calculateLastDate = dbPosition.lastRewardsCollected || dbPosition.createdAt || now;
         const millisSinceLastDate = now.valueOf() - calculateLastDate.valueOf();
         const hoursSinceLastDate = millisSinceLastDate / (60 * 60 * 1000);
-        const percentRewards = totalTokensOwedInUsdc.div(totalStakeValueUsdcAsDecimal).times(100)
+        const percentRewards = totalTokensOwedInUsdc.div(totalStakeValueUsdcAsDecimal).times(100);
         const percentPerHour = percentRewards.div(hoursSinceLastDate);
         const estPercentPerDay = percentPerHour.times(24);
 
@@ -131,10 +136,38 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         const currentDeficitToken0AsUsdc = currentDeficitToken0.times(priceAsDecimal);
         const currentDeficitTotalAsUsdc = currentDeficitToken0AsUsdc.plus(currentDeficitToken1);
 
-        const firstBalanceEverAsDecimal = firstBalanceEver ? new Decimal( firstBalanceEver.totalUsdc ) : new Decimal(0);
+        const firstBalanceEverAsDecimal = firstBalanceEver ? new Decimal(firstBalanceEver.totalUsdc) : new Decimal(0);
         const balancePercentSinceBeginningBalance = firstBalanceEverAsDecimal.gt(0) ?
             totalStakeValueUsdcAsDecimal.minus(firstBalanceEverAsDecimal).div(firstBalanceEverAsDecimal).times(100)
             : new Decimal(0);
+
+        // The percent for ema current
+        let currentPercentEma = percentRewards;
+        let currentPercentEmaCounter = new Decimal(1);
+
+        // Get the new EMA value
+        if (lastPercentEma) {
+            const [counter, average] = lastPercentEma.value.split(EMA_DELIMETER) as [string, string];
+
+            debug("counter=%s, average=%s", counter, average);
+
+            currentPercentEmaCounter = new Decimal(counter).plus(1);
+
+            // average = average + (value - average) / min(counter, FACTOR)
+            currentPercentEma =
+                // (value - average)
+                percentRewards.minus(average)
+                    // min(counter, FACTOR)
+                    .div(Decimal.min(currentPercentEmaCounter, EMA_FACTOR))
+                    // average +
+                    .plus(average);
+        }
+
+        // Save the ema
+        await DBProperty.upsert({
+            key: LAST_PERCENT_EMA_KEY,
+            value: `${currentPercentEmaCounter}${EMA_DELIMETER}${currentPercentEma}`
+        });
 
         // Save the last price
         await dbPosition.update({
@@ -158,7 +191,7 @@ Price: %s (%s%%)
 Low price: %s (%s%% from current)
 High price: %s (%s%% from current)
 
-Rewards total: %s USDC (%s%%, %s)
+Rewards total: %s USDC (%s%%, %s, EMA: %s)
 Rewards USDC: %s (%s)
 Rewards WETH: %s (%s USDC, %s)
 Est Per Day: %s%%
@@ -192,7 +225,7 @@ Wallet USDC: %s`,
             upperPrice.toFixed(4), upperPrice.subtract(positionInfo.price).divide(positionInfo.price).multiply(100).toFixed(2),
 
             // Rewards total
-            totalTokensOwedInUsdc.toFixed(2), percentRewards.toFixed(2), plusOrMinusStringFromDecimal(totalTokensOwedInUsdc.minus(previousReceivedFeesTotalUSDC), 2),
+            totalTokensOwedInUsdc.toFixed(2), percentRewards.toFixed(2), plusOrMinusStringFromDecimal(totalTokensOwedInUsdc.minus(previousReceivedFeesTotalUSDC), 2), currentPercentEma.toFixed(2),
             tokensOwed1.toFixed(2), plusOrMinusStringFromDecimal(tokensOwed1.minus(previousReceivedFeesTokenB), 2),
             tokensOwed0, tokensOwed0InUsdc.toFixed(2), plusOrMinusStringFromDecimal(tokensOwed0.minus(previousReceivedFeesTokenA)),
             estPercentPerDay.toFixed(2),
