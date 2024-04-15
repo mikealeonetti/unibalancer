@@ -191,7 +191,7 @@ Price: %s (%s%%)
 Low price: %s (%s%% from current)
 High price: %s (%s%% from current)
 
-Rewards total: %s USDC (%s%%, %s, EMA: %s)
+Rewards total: %s USDC (%s%%, %s, EMA: %s%%)
 Rewards USDC: %s (%s)
 Rewards WETH: %s (%s USDC, %s)
 Est Per Day: %s%%
