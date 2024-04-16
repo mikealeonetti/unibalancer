@@ -17,6 +17,7 @@
     "check-pools": "tsc && NODE_OPTIONS=--enable-source-maps node dist/tests/checkPoolsAndQuotes.js",
     "test-ratios": "tsc && NODE_OPTIONS=--enable-source-maps node dist/tests/testPoolRatiosAndFees.js",
     "get-balances": "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/getBalances.js",
+    "burn-nfts": "tsc && NODE_OPTIONS=--enable-source-maps node dist/run/burnAllEmptyNfts.js",
     "lint": "eslint . --ext .ts",
     "gastest": "tsc && NODE_OPTIONS=--enable-source-maps node dist/getGasPrices.js",
     "test": "echo \"Error: no test specified\" && exit 1"

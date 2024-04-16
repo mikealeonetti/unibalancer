@@ -59,6 +59,8 @@ export const REBALANCE_PER_HOUR_COUNT: number = Number(process.env.REBALANCE_PER
 export const REBALANCE_AT_PERCENT: number = Number(process.env.REBALANCE_AT_PERCENT) || 1;
 export const REFUSE_COLLECTION_GAS_ABOVE : number = Number(process.env.REFUSE_COLLECTION_GAS_ABOVE) || 0.005;
 
+export const REFUSE_BURN_NFT_GAS_ABOVE  = Number( process.env.REFUSE_COLLECTION_GAS_ABOVE ) || 0.005;
+
 export const IS_DEBUG_MODE: Boolean = process.env.IS_DEBUG_MODE != null && toLower(process.env.IS_DEBUG_MODE) == "true" || false;
 
 export const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -70,5 +72,6 @@ export const MAX_RETRIES_SETTING = 5;
 export const MAX_CONCURRENCY : number = 5;
 
 export const SAVE_BALANCE_EVERY_HOURS = Number(process.env.SAVE_BALANCE_EVERY_HOURS) || 24;
+export const BURN_NFT_EVERY_HOURS = Number(process.env.BURN_NFT_EVERY_HOURS) || 1;
 
 export const TXN_RECEIPT_CHECK_DELAY_MS = Number(process.env.TXN_RECEIPT_CHECK_DELAY_MS) || 10;

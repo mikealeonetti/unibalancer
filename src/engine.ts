@@ -8,8 +8,8 @@ import Debug from 'debug';
 import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedeposit";
 import PositionManager from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
-import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
 import shouldSaveBalance from "./shouldSaveBalance";
+import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
 
 const debug = Debug("unibalancer:engine");
 

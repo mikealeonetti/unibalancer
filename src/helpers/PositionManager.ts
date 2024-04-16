@@ -1,7 +1,8 @@
-import { Fraction, Percent, Price, Token } from "@uniswap/sdk-core";
-import { MintOptions, NonfungiblePositionManager, Pool, Position, nearestUsableTick, priceToClosestTick, tickToPrice, AddLiquidityOptions } from "@uniswap/v3-sdk";
+import { Price, Token } from "@uniswap/sdk-core";
+import { AddLiquidityOptions, MintOptions, NonfungiblePositionManager, Pool, Position, nearestUsableTick, priceToClosestTick, tickToPrice } from "@uniswap/v3-sdk";
 import { addMinutes } from "date-fns";
-import { difference, first, pick, round, times } from "lodash";
+import { first, round, times } from "lodash";
+import util from 'util';
 import { DEPOSIT_SLIPPAGE, MAX_CONCURRENCY, NONFUNGIBLE_POSITION_MANAGER_CONTRACT_ADDRESS, RANGE_PERCENT, USDC_TOKEN, V3_SWAP_ROUTER_ADDRESS, WANTED_FEE_AMOUNT, WETH_TOKEN } from "../constants";
 import { wethContract } from "../contracts/WethContract";
 import usdcContract from "../contracts/usdcContract";
@@ -9,25 +10,29 @@ import { userWallet } from "../network";
 import DecimalUtil from "./DecimalUtil";
 import PoolHelper, { PoolAndPoolInfo, PoolInfo } from "./PoolHelper";
 import TransactionHelper from "./TransactionHelper";
-import util from 'util';
 
+import { Currency, CurrencyAmount } from "@uniswap/sdk-core/dist/entities";
 import Bluebird from "bluebird";
 import Debug from 'debug';
 import Decimal from "decimal.js";
 import Erc20Contract from "../contracts/Erc20Contract";
 import nftTokenContract from "../contracts/nftTokenContract";
+import { DBPosition } from "../database/models/DBPosition";
+import { DBPositionHistory } from "../database/models/DBPositionHistory";
 import logger from "../logger";
 import swapToken from "../swapToken";
+import { alertViaTelegram } from "../telegram";
 import BalanceHelpers from "./BalanceHelpers";
 import LiquidityCalc from "./LiquidityCalc";
 import PriceHelper from "./PriceHelper";
-import { DBPosition } from "../database/models/DBPosition";
-import { DBPositionHistory } from "../database/models/DBPositionHistory";
-import { alertViaTelegram } from "../telegram";
-import { Currency, CurrencyAmount } from "@uniswap/sdk-core/dist/entities";
-import SwapHelper from "./SwapHelper";
 
 const debug = Debug("unibalancer:helpers:PositionManager");
+
+export enum GetPositionsType {
+    ReallyAll,
+    HasLiquidity,
+    HasNoLiquidity
+}
 
 export interface TickUpperAndLower {
     tickUpper: number;
@@ -230,7 +235,7 @@ export default class PositionManager {
         }
 
         // Get the amount we have to swap
-        const { amountToSwap, swapPool} = await LiquidityCalc.getRatio(
+        const { amountToSwap, swapPool } = await LiquidityCalc.getRatio(
             wethBalance,
             usdcBalance,
             placeholderPosition.tickUpper,
@@ -491,7 +496,7 @@ USDC amount: %s (%s%%)`,
         return positionIds;
     }
 
-    static async getAllPositions(): Promise<PositionInfo[]> {
+    static async getAllPositions(type: GetPositionsType = GetPositionsType.HasLiquidity): Promise<PositionInfo[]> {
         const positionIds = await this.getAllPositionIds();
 
         debug("positionIds=", positionIds);
@@ -504,9 +509,19 @@ USDC amount: %s (%s%%)`,
 
             const liquidityString = position.liquidity.toString();
 
-            if (BigInt(liquidityString) <= 0) {
-                debug("position %s has no liquidity.", positionId);
-                return (null);
+            // Really all means get it all
+            if (type != GetPositionsType.ReallyAll) {
+                debug( "We are looking for a specific position.");
+                // Do we have liquidity
+                const hasLiquidity = BigInt(liquidityString) > 0;
+                const wantLiquidity = type == GetPositionsType.HasLiquidity;
+
+                debug("position %s has liquidity=%s and we want liquidity=%s.", positionId, hasLiquidity, wantLiquidity);
+
+                if (hasLiquidity != wantLiquidity) {
+                    debug("Excluding position.");
+                    return (null);
+                }
             }
 
             const collectResults = await nftTokenContract.collect.staticCall(

@@ -1,4 +1,4 @@
-import { Provider, TransactionReceipt, TransactionRequest, TransactionResponse, Wallet } from "ethers";
+import { Contract, Provider, TransactionReceipt, TransactionRequest, TransactionResponse, Wallet } from "ethers";
 import { provider, userWallet } from "../network";
 import { ClientTransactionResponse } from "../types";
 
@@ -70,7 +70,34 @@ export default class TransctionHelper {
         return this.resolveTransactionResponse(response);
     }
 
+    static async estimateGasFromPromise( promise : Promise<bigint>, wantedProvider: Provider = provider ) : Promise<Decimal> {
+        // Get the gas amount
+        const [
+            estimatedGas,
+            feeData
+        ] = await Promise.all([
+            promise,
+            provider.getFeeData()
+        ]);
+
+        debug( "estimatedGas=%s, feeData=", estimatedGas, feeData);
+
+        if (feeData.gasPrice == null) {
+            throw new Error("Cannot calcualte gas price.");
+        }
+
+        const ethUsed = DecimalUtil.fromBigNumberish(estimatedGas)
+            .times(feeData.gasPrice.toString())
+            .adjustDecimalsLeft(WETH_TOKEN.decimals);
+
+        // Now convert to decimale
+        return ethUsed;
+    }
+
     static async estimateTotalGasUsedInEth(transaction: TransactionRequest, wantedProvider: Provider = provider): Promise<Decimal> {
+        return this.estimateGasFromPromise( provider.estimateGas(transaction), wantedProvider);
+
+        /*
         // Get the gas amount
         const [
             estimatedGas,
@@ -92,5 +119,6 @@ export default class TransctionHelper {
 
         // Now convert to decimale
         return ethUsed;
+        */
     }
 }

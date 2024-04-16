@@ -52,6 +52,7 @@ export default async function (positionInfo: PositionInfo, dbPosition: DBPositio
             // percentage of liquidity to remove
             liquidityPercentage: new Percent(1),
             collectOptions,
+            burnToken : true
         };
 
         debug("removeLiquidityOptions=", removeLiquidityOptions);
