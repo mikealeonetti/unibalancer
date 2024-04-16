@@ -219,7 +219,7 @@ export default class PositionManager {
 
         // Do we have enough?
         {
-            const haveEnough = wethBalance.greaterThan(0) && usdcBalance.greaterThan(0);
+            const haveEnough = wethBalance.greaterThan(0) || usdcBalance.greaterThan(0);
 
             // Do we have enough to deposit?
             // Do we have any money whatsoever?
