@@ -15,7 +15,7 @@ export type AddressableOrString = string | Addressable;
 export default class Erc20Contract {
     public readonly contract: Contract;
     public readonly decimals: number;
-    protected readonly wallet : Wallet;
+    protected readonly wallet: Wallet;
 
     constructor(address: AddressableOrString, decimals: number = 18, abi: ethers.Interface | ethers.InterfaceAbi = ERC20ABI, wallet: Wallet) {
         this.contract = new Contract(address, abi, wallet);
@@ -23,11 +23,11 @@ export default class Erc20Contract {
         this.wallet = wallet;
     }
 
-    static fromToken(token: Token, wallet : Wallet): Erc20Contract {
+    static fromToken(token: Token, wallet: Wallet): Erc20Contract {
         return new Erc20Contract(token.address, token.decimals, ERC20ABI, wallet);
     }
 
-    async hasEnoughAllowance(ownerAddress: string, spenderAddress: string, amount : Decimal): Promise<boolean> {
+    async hasEnoughAllowance(ownerAddress: string, spenderAddress: string, amount: Decimal): Promise<boolean> {
         const value = await this.contract.allowance(ownerAddress, spenderAddress);
 
         const valueBigInt = BigInt(value.toString());
@@ -49,6 +49,26 @@ export default class Erc20Contract {
 
         // Return it
         return decimal;
+    }
+
+    async transfer(toAddress: string, amount: Decimal): Promise<ClientTransactionResponse> {
+        debug("transfer=", toAddress, "amount=", amount);
+
+        // Get the value
+        const value = amount.toBigInt(this.decimals);
+
+        // Approve
+        const response: TransactionResponse = await this.contract.transfer(toAddress, value);
+
+        debug("transfer response=", response);
+
+        // Do it
+        const returnValue = await TransactionHelper.resolveTransactionResponse(response);
+
+        debug("transfer returnValue=", returnValue);
+
+        // Return them
+        return (returnValue);
     }
 
     async balanceOf(holderAddress: string): Promise<Decimal> {

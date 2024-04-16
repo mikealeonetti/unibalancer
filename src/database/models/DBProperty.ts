@@ -43,10 +43,42 @@ export class DBProperty extends Model<InferAttributes<DBProperty>, InferCreation
 	declare static getTokenHoldingsKeyFromSymbol: (currencySymbol: string, keyType: KeyType) => string;
 	declare static getTokenHoldings: (currencySymbol: string) => Promise<Decimal>;
 	declare static addTokenHoldings: (currencySymbol: string, amount: Decimal, positionId: string) => Promise<void>;
+	declare static subtractTokenHoldings: (currencySymbol: string, amount: Decimal) => Promise<void>;
 
 	declare static addCumulativeFeesReceived: (currencySymbol: string, amount: Decimal) => Promise<void>;
 	declare static getCumulativeFeesReceived: (currencySymbol: string) => Promise<Decimal>;
 }
+
+DBProperty.subtractTokenHoldings = async function (currencySymbol: string, amount: Decimal): Promise<void> {
+	// Makes no sense to increment
+	if (amount.lte(0))
+		return;
+
+	// The key
+	const currentKey = DBProperty.getTokenHoldingsKeyFromSymbol(currencySymbol, KeyType.Current);
+
+	// Get the previous value
+	const currentHoldings = await DBProperty.getByKey(currentKey);
+
+	// Get the figure
+	let newAmount = currentHoldings ? new Decimal( currentHoldings.value ) : new Decimal( 0 );
+
+	debug("newAmount before=%s", newAmount);
+
+	// We can't subtract less than we have
+	newAmount = newAmount.minus( amount );
+
+	debug("newAmount after=%s", newAmount);
+
+	if( newAmount.lt(0) )
+		throw new Error( `Cannot subtract by ${amount} because it's more than we have by ${Decimal.abs(newAmount)}.`);
+
+	// Save it
+	await DBProperty.upsert( {
+		key : currentKey,
+		value : newAmount.toString()
+	});
+};
 
 DBProperty.keyPlusSymbol = function (key: string, symbol: string): string {
 	return (key + "-" + toUpper(symbol));
@@ -71,16 +103,16 @@ DBProperty.addCumulativeFeesReceived = async function (currencySymbol: string, f
 	let property = await DBProperty.getByKeyAndSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol);
 
 	// Create if no have
-	if( property ) {
+	if (property) {
 		// Add it
-		property.value = new Decimal( property.value ).plus( feeAmount ).toString();
+		property.value = new Decimal(property.value).plus(feeAmount).toString();
 	}
 	else {
 		// Set it
-		property = new DBProperty( {
-			key : this.keyPlusSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol),
-			value : feeAmount.toString()
-		}) ;
+		property = new DBProperty({
+			key: this.keyPlusSymbol(CUMULATIVE_FEES_RECEIVED, currencySymbol),
+			value: feeAmount.toString()
+		});
 	}
 
 	// Save it

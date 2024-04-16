@@ -48,7 +48,7 @@ export const WANTED_FEE_AMOUNT = FeeAmount.MEDIUM;
 
 export const RANGE_PERCENT = Number(process.env.RANGE_PERCENT) || 10;
 
-export const TAKE_PROFIT_PERCENT = Number(process.env.TAKE_PROFIT_PERCENT) || 50;
+export const TAKE_PROFIT_PERCENT = Number(process.env.TAKE_PROFIT_PERCENT) || 0;
 
 export const MAXIMUM_GAS_TO_SAVE = Number(process.env.MAXIMUM_GAS_TO_SAVE) || 0.01;
 export const MINIMUM_GAS_TO_SAVE = Number(process.env.MINIMUM_GAS_TO_SAVE) || 0.005;
