@@ -4,7 +4,7 @@ import { ClientTransactionResponse } from "../types";
 
 import Debug from 'debug';
 import Decimal from "decimal.js";
-import { WETH_TOKEN } from "../constants";
+import { TXN_RECEIPT_CHECK_DELAY_MS, WETH_TOKEN } from "../constants";
 import { DBProperty } from "../database";
 import Bluebird from "bluebird";
 import logger from "../logger";
@@ -36,7 +36,7 @@ export default class TransctionHelper {
                 debug("resolveTransactionResponse receipt=", receipt);
 
                 if (receipt === null) {
-                    await Bluebird.delay(10);
+                    await Bluebird.delay(TXN_RECEIPT_CHECK_DELAY_MS);
                     continue
                 }
 

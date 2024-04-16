@@ -70,3 +70,5 @@ export const MAX_RETRIES_SETTING = 5;
 export const MAX_CONCURRENCY : number = 5;
 
 export const SAVE_BALANCE_EVERY_HOURS = Number(process.env.SAVE_BALANCE_EVERY_HOURS) || 24;
+
+export const TXN_RECEIPT_CHECK_DELAY_MS = Number(process.env.TXN_RECEIPT_CHECK_DELAY_MS) || 10;
