@@ -106,6 +106,9 @@ export default async function (positionInfos: PositionInfo[]) {
         profitTakenTokenB = profitTakenTokenB.add(profit1.times(TAKE_PROFIT_PERCENT).div(100));
     }
 
+    // We have more positions
+    totalPositions = totalPositions + positionInfos.length;
+
     // Balance out the profit with the 
 
     // Calcualte the total usdc value
