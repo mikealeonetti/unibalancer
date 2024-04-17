@@ -35,6 +35,7 @@ export class DBProperty extends Model<InferAttributes<DBProperty>, InferCreation
 
 	declare static addDeficits: (currencySymbol: string, feeAmount: Decimal, reason: string) => Promise<DBProperty>;
 	declare static getDeficits: (currencySymbol: string) => Promise<Decimal>;
+	declare static getCumulativeDefitis: (currencySymbol: string) => Promise<Decimal>;
 	declare static paybackDeficits: (currencySymbol: string, credits: Decimal) => Promise<Decimal>;
 
 	declare static getCurrentDeficitKeyFromSymbol: (currencySymbol: string) => string;
@@ -42,6 +43,7 @@ export class DBProperty extends Model<InferAttributes<DBProperty>, InferCreation
 
 	declare static getTokenHoldingsKeyFromSymbol: (currencySymbol: string, keyType: KeyType) => string;
 	declare static getTokenHoldings: (currencySymbol: string) => Promise<Decimal>;
+	declare static getCumulativeTokenHoldings: (currencySymbol: string) => Promise<Decimal>;
 	declare static addTokenHoldings: (currencySymbol: string, amount: Decimal, positionId: string) => Promise<void>;
 	declare static subtractTokenHoldings: (currencySymbol: string, amount: Decimal) => Promise<void>;
 
@@ -137,6 +139,23 @@ DBProperty.getTokenHoldingsKeyFromSymbol = function (currenySymbol: string, keyT
 DBProperty.getTokenHoldings = async function (currencySymbol: string): Promise<Decimal> {
 	// The key
 	const key = DBProperty.getTokenHoldingsKeyFromSymbol(currencySymbol, KeyType.Current);
+
+	// Get the previous value
+	let property = await DBProperty.getByKey(key);
+
+	// Do we have a property already?
+	if (property) {
+		// Return the value
+		return new Decimal(property.value);
+	}
+
+	// Return zero
+	return new Decimal(0);
+};
+
+DBProperty.getCumulativeTokenHoldings = async function (currencySymbol: string): Promise<Decimal> {
+	// The key
+	const key = DBProperty.getTokenHoldingsKeyFromSymbol(currencySymbol, KeyType.Cumulative);
 
 	// Get the previous value
 	let property = await DBProperty.getByKey(key);
@@ -283,6 +302,18 @@ DBProperty.getDeficits = async function (currencyName: string): Promise<Decimal>
 
 	return new Decimal(deficits.value);
 };
+DBProperty.getCumulativeDefitis = async function (currencyName: string): Promise<Decimal> {
+	const key = this.getCumulativeDeficitKeyFromSymbol(currencyName);
+
+	// Get the fee
+	const deficits = await this.getByKey(key);
+
+	if (deficits == null)
+		return new Decimal(0);
+
+	return new Decimal(deficits.value);
+};
+
 
 DBProperty.init({
 	key: {

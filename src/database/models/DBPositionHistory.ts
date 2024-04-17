@@ -1,4 +1,4 @@
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from "sequelize";
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, Sequelize } from "sequelize";
 import { sequelize } from "../common";
 
 export class DBPositionHistory extends Model<InferAttributes<DBPositionHistory>, InferCreationAttributes<DBPositionHistory>> {
@@ -13,8 +13,32 @@ export class DBPositionHistory extends Model<InferAttributes<DBPositionHistory>,
 	// updatedAt can be undefined during creation
 	declare updatedAt: CreationOptional<Date>;
 
+	declare static getAverageTimeInPosition: ()=>Promise<number>;
 	declare static getLatestByPositionIdString : ( positionId : string )=>Promise<DBPositionHistory|null>;
 	declare static getLatestByPositionId : ( positionId : BigInt )=>Promise<DBPositionHistory|null>;
+}
+
+DBPositionHistory.getAverageTimeInPosition = async function() : Promise<number> {
+	const average = await this.findOne({
+		attributes: [
+			[
+				Sequelize.fn("avg",
+					Sequelize.cast(
+						Sequelize.literal(
+							"( JulianDay(closed) - JulianDay(createdAt) ) * 24"
+						), "Decimal")
+				), "avg"
+			]
+
+		]
+	});
+
+	// If we have it return it
+	if( average )
+		return Number( average.get("avg") );
+
+	// Otherwise zero
+	return 0;
 }
 
 DBPositionHistory.getLatestByPositionIdString = function( positionId : string ) : Promise<DBPositionHistory|null> {

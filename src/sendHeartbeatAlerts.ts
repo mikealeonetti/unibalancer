@@ -7,9 +7,10 @@ import Decimal from "decimal.js";
 import { HEARTBEAT_FREQUENCY_MINUTES } from "./constants";
 import { wethContract } from "./contracts/WethContract";
 import usdcContract from "./contracts/usdcContract";
-import { DBBalance } from "./database/models/DBBalance";
+
 import { DBPosition } from "./database/models/DBPosition";
 import { DBPositionHistory } from "./database/models/DBPositionHistory";
+import { DBStat } from "./database/models/DBStat";
 import BalanceHelpers from "./helpers/BalanceHelpers";
 import { PositionInfo } from "./helpers/PositionManager";
 import { getSymbolFromTokenAddress } from "./helpers/TokenHelper";
@@ -21,9 +22,9 @@ import { plusOrMinusStringFromDecimal } from "./utils";
 const debug = Debug("unibalancer:sendHeartbeatAlerts");
 
 const HEARTBEAT_KEY = "lastHeartbeatAlert";
-const LAST_PERCENT_EMA_KEY = "LastPercentEMA";
+export const LAST_PERCENT_EMA_KEY = "LastPercentEMA";
 const EMA_FACTOR = 7 * 24; // 1 week
-const EMA_DELIMETER = ",";
+export const EMA_DELIMETER = ",";
 
 export default async function (positionInfos: PositionInfo[]): Promise<void> {
     // Right NOW!
@@ -76,7 +77,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             tokenBHoldings, // 4
             currentDeficitToken0, // 5
             currentDeficitToken1, // 6
-            firstBalanceEver, // 7
+            firstStatEver, // 7
             lastPercentEma // 8
         ] = await Promise.all([
             DBPosition.getByPositionIdString(positionIdString), // 1
@@ -85,7 +86,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
             DBProperty.getTokenHoldings(token1Symbol), // 4
             DBProperty.getDeficits("weth"), // 5
             DBProperty.getDeficits("usdc"), // 6
-            DBBalance.findOne({ order: [["createdAt", "ASC"]] }), // 7
+            DBStat.findOne({ order: [["createdAt", "ASC"]] }), // 7
             DBProperty.getByKey(LAST_PERCENT_EMA_KEY) // 8
         ]);
 
@@ -136,11 +137,11 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         const currentDeficitToken0AsUsdc = currentDeficitToken0.times(priceAsDecimal);
         const currentDeficitTotalAsUsdc = currentDeficitToken0AsUsdc.plus(currentDeficitToken1);
 
-        const firstBalanceEverAsDecimal = firstBalanceEver ? new Decimal(firstBalanceEver.totalUsdc) : new Decimal(0);
+        const firstBalanceEverAsDecimal = firstStatEver ? new Decimal(firstStatEver.totalUsdcBalance) : new Decimal(0);
         const balancePercentSinceBeginningBalance = firstBalanceEverAsDecimal.gt(0) ?
             totalStakeValueUsdcAsDecimal.minus(firstBalanceEverAsDecimal).div(firstBalanceEverAsDecimal).times(100)
             : new Decimal(0);
-        const firstPriceEverAsDecimal = firstBalanceEver ? new Decimal(firstBalanceEver.price) : new Decimal(0);
+        const firstPriceEverAsDecimal = firstStatEver ? new Decimal(firstStatEver.tokenAPriceInUsdc) : new Decimal(0);
         const pricePercentSinceBeginningPrice = firstPriceEverAsDecimal.gt(0) ?
             priceAsDecimal.minus(firstPriceEverAsDecimal).div(firstPriceEverAsDecimal).times(100)
             : new Decimal(0);

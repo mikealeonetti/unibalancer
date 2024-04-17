@@ -1,8 +1,5 @@
 import { DataTypes } from "sequelize";
 import { UmzugMigration } from "../common";
-import { DBBalance } from "../models/DBBalance";
-import { DBPositionHistory } from "../models/DBPositionHistory";
-import { first } from "lodash";
 
 
 export const up: UmzugMigration = async function ({ context: queryInterface }) {

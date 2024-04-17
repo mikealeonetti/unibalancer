@@ -1,5 +1,5 @@
 import { Percent } from '@uniswap/sdk-core';
-import { CollectOptions, NonfungiblePositionManager, RemoveLiquidityOptions } from '@uniswap/v3-sdk';
+import { CollectOptions, Multicall, NonfungiblePositionManager, RemoveLiquidityOptions } from '@uniswap/v3-sdk';
 import Debug from 'debug';
 import Decimal from 'decimal.js';
 import util from 'util';

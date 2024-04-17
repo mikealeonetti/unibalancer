@@ -8,8 +8,8 @@ import Debug from 'debug';
 import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedeposit";
 import PositionManager from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
-import shouldSaveBalance from "./shouldSaveBalance";
 import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
+import shouldSaveStats from "./shouldSaveStats";
 
 const debug = Debug("unibalancer:engine");
 
@@ -32,7 +32,7 @@ export default async function (): Promise<void> {
             //debug( "New open positions=", openPositions );
 
             // Save balances
-            await shouldSaveBalance(openPositions);
+            await shouldSaveStats(openPositions);
 
             // Send heartbeats
             // This should probably go after
