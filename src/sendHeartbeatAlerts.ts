@@ -140,6 +140,10 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         const balancePercentSinceBeginningBalance = firstBalanceEverAsDecimal.gt(0) ?
             totalStakeValueUsdcAsDecimal.minus(firstBalanceEverAsDecimal).div(firstBalanceEverAsDecimal).times(100)
             : new Decimal(0);
+        const firstPriceEverAsDecimal = firstBalanceEver ? new Decimal(firstBalanceEver.price) : new Decimal(0);
+        const pricePercentSinceBeginningPrice = firstPriceEverAsDecimal.gt(0) ?
+            priceAsDecimal.minus(firstPriceEverAsDecimal).div(firstPriceEverAsDecimal).times(100)
+            : new Decimal(0);
 
         // The percent for ema current
         let currentPercentEma = estPercentPerDay;
@@ -187,7 +191,7 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
         
 Opened: %s (%s)
 
-Price: %s (%s%%)
+Price: %s (%s%%, %s%% overall)
 Low price: %s (%s%% from current)
 High price: %s (%s%% from current)
 
@@ -220,7 +224,7 @@ Wallet USDC: %s`,
             dbPosition.createdAt.toLocaleString(), formatDistance(dbPosition.createdAt, now),
 
             // Price
-            positionInfo.price.toFixed(4), plusOrMinusStringFromDecimal(movementPercent, 2),
+            positionInfo.price.toFixed(4), plusOrMinusStringFromDecimal(movementPercent, 2), plusOrMinusStringFromDecimal(pricePercentSinceBeginningPrice, 2),
             lowerPrice.toFixed(4), positionInfo.price.subtract(lowerPrice).divide(positionInfo.price).multiply(100).toFixed(2),
             upperPrice.toFixed(4), upperPrice.subtract(positionInfo.price).divide(positionInfo.price).multiply(100).toFixed(2),
 
