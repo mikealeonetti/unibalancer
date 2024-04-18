@@ -58,8 +58,9 @@ export const MINIMUM_AMOUNT_TO_DEPOSIT_DOLLARS = Number(process.env.MINIMUM_AMOU
 export const REBALANCE_PER_HOUR_COUNT: number = Number(process.env.REBALANCE_PER_HOUR_COUNT) || 0;
 export const REBALANCE_AT_PERCENT: number = Number(process.env.REBALANCE_AT_PERCENT) || 1;
 export const REFUSE_COLLECTION_GAS_ABOVE : number = Number(process.env.REFUSE_COLLECTION_GAS_ABOVE) || 0.005;
+export const REFUSE_COLLECTION_TOO_CLOSE_PERCENT = Number(process.env.REFUSE_COLLECTION_TOO_CLOSE_PERCENT) || 0;
 
-export const REFUSE_BURN_NFT_GAS_ABOVE  = Number( process.env.REFUSE_COLLECTION_GAS_ABOVE ) || 0.005;
+export const REFUSE_BURN_NFT_GAS_ABOVE  = Number( process.env.REFUSE_COLLECTION_GAS_ABOVE ) || 0;
 
 export const IS_DEBUG_MODE: Boolean = process.env.IS_DEBUG_MODE != null && toLower(process.env.IS_DEBUG_MODE) == "true" || false;
 

@@ -11,6 +11,7 @@ import { DBStat } from './database/models/DBStat';
 import { EMA_DELIMETER, LAST_PERCENT_EMA_KEY } from './sendHeartbeatAlerts';
 import { DBPositionHistory } from './database/models/DBPositionHistory';
 import Decimal from 'decimal.js';
+import { Multicall } from '@uniswap/v3-sdk';
 
 const debug = Debug("unibalancer:shouldSaveStats");
 

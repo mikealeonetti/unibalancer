@@ -6,7 +6,7 @@ import { DBPosition } from "./database/models/DBPosition";
 import { DBPositionHistory } from "./database/models/DBPositionHistory";
 import { PositionInfo } from "./helpers/PositionManager";
 import logger from "./logger";
-import { REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT } from './constants';
+import { REBALANCE_AT_PERCENT, REBALANCE_PER_HOUR_COUNT, REFUSE_COLLECTION_TOO_CLOSE_PERCENT } from './constants';
 
 const debug = Debug("unibalancer:shouldTriggerRedeposit");
 
@@ -17,7 +17,8 @@ export default async function (positionInfos: PositionInfo[]) {
         const {
             positionId,
             tokensOwed0,
-            tokensOwed1
+            tokensOwed1,
+            price
         } = positionInfo;
         const positionIdString = positionId.toString();
 
@@ -49,7 +50,7 @@ export default async function (positionInfos: PositionInfo[]) {
 
         debug("position.fees.tokenA=%s, position.fees.tokenB=%s", tokensOwed0, tokensOwed1);
 
-        const priceAsDecimal = positionInfo.price.toDecimal();
+        const priceAsDecimal = price.toDecimal();
 
         // See if we have at least 1% in gains
         const totalFeesInUSDC = tokensOwed0.times(priceAsDecimal).plus(tokensOwed1);
@@ -88,6 +89,29 @@ export default async function (positionInfos: PositionInfo[]) {
 
         // Is it greater than 1%?
         if (shouldCollectFees) {
+            // Get the proximity to the top and bottom
+            const distancesToRanges = [
+                price.subtract(positionInfo.lowerPrice).divide(price).multiply(100),
+                positionInfo.upperPrice.subtract(price).divide(price).multiply(100)
+            ];
+
+            // This is a confusing construct!
+            const tooClosePercent = new Decimal(REFUSE_COLLECTION_TOO_CLOSE_PERCENT).toPercent()
+
+            debug("distanceLower=%s, distanceToUppwer=%s, REFUSE_COLLECTION_TOO_CLOSE_PERCENT=%s.", ...distancesToRanges.map(p=>p.toFixed(2)), tooClosePercent.quotient);
+
+            // See if any is too close to ut of range
+            const indexTooCloseOutOfRange = distancesToRanges.findIndex(distance => distance.lessThan(tooClosePercent));
+
+            // Too close?
+            if (indexTooCloseOutOfRange != -1) {
+                logger.warn("We are too close (%s%%) in the threshold (%s%%). Refusing to collect.",
+                    distancesToRanges[indexTooCloseOutOfRange].toFixed(2),
+                    tooClosePercent.quotient
+                );
+                continue;
+            }
+
             // First trigger collection
             logger.debug("Collecting rewards.");
 

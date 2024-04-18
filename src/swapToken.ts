@@ -10,7 +10,6 @@ import { ethers } from "ethers";
 import JSBI from "jsbi";
 import Erc20Contract from "./contracts/Erc20Contract";
 import { DBProperty } from "./database";
-import SwapHelper from "./helpers/SwapHelper";
 import { getSymbolFromTokenAddress } from "./helpers/TokenHelper";
 import TransactionHelper from "./helpers/TransactionHelper";
 import { userWallet } from "./network";
