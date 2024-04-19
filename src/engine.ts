@@ -5,7 +5,7 @@ import logger from "./logger";
 import resyncDatabasePositions from "./resyncDatabasePositions";
 
 import Debug from 'debug';
-import PQueue from 'p-queue';
+import PromiseQueue from "./PromiseQueue";
 import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedeposit";
 import closePosition from "./closePosition";
 import { WANTED_FEE_AMOUNT } from "./constants";
@@ -15,7 +15,6 @@ import PositionManager, { PositionInfo } from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
 import shouldSaveStats from "./shouldSaveStats";
 import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
-import PromiseQueue from "./PromiseQueue";
 
 const debug = Debug("unibalancer:engine");
 
