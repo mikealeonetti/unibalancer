@@ -8,13 +8,14 @@ import Debug from 'debug';
 import PromiseQueue from "./PromiseQueue";
 import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedeposit";
 import closePosition from "./closePosition";
-import { WANTED_FEE_AMOUNT } from "./constants";
+import { USDC_TOKEN, WANTED_FEE_AMOUNT, WETH_TOKEN } from "./constants";
 import { DBPosition } from "./database/models/DBPosition";
 import PoolHelper from "./helpers/PoolHelper";
 import PositionManager, { PositionInfo } from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
 import shouldSaveStats from "./shouldSaveStats";
 import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
+import PriceHelper from "./helpers/PriceHelper";
 
 const debug = Debug("unibalancer:engine");
 
@@ -100,10 +101,12 @@ export default class Engine {
             for (const positionInfo of openPositions) {
                 const { tickLower, tickUpper, positionId } = positionInfo;
 
+                const price = PriceHelper.sqrtRatioX96ToPrice(WETH_TOKEN, USDC_TOKEN, sqrtPriceX96);
+
                 // Is it out of range
                 const isOutOfRange = tickCurrent <= tickLower || tickCurrent >= tickUpper;
 
-                debug("onSwapEvent tickCurrent=%s, tickLower=%s, tickUpper=%s, isOutOfRange=%s", tickCurrent, tickLower, tickUpper, isOutOfRange);
+                debug("onSwapEvent price=%s, tickCurrent=%s, tickLower=%s, tickUpper=%s, isOutOfRange=%s", price.toFixed(), tickCurrent, tickLower, tickUpper, isOutOfRange);
 
                 // Is the position out of range???
                 if (isOutOfRange) {

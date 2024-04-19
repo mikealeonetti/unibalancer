@@ -10,7 +10,7 @@ export default class PriceHelper {
     static Q96 = /*#__PURE__*/JSBI.exponentiate( /*#__PURE__*/JSBI.BigInt(2), /*#__PURE__*/JSBI.BigInt(96));
     static Q192 = /*#__PURE__*/JSBI.exponentiate(this.Q96, /*#__PURE__*/JSBI.BigInt(2));
 
-    static sqrtRatioX96ToPrice(baseToken: Token, quoteToken: Token, sqrtRatioX96: BigInt): Price<Token, Token> {
+    static sqrtRatioX96ToPrice(baseToken: Token, quoteToken: Token, sqrtRatioX96: bigint): Price<Token, Token> {
 
         const sqrtRatioX96JSBI = JSBI.BigInt(sqrtRatioX96.toString());
 

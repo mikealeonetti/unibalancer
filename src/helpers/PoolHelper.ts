@@ -15,8 +15,8 @@ export interface PoolInfo {
     token1: string;
     fee: number;
     tickSpacing: number;
-    sqrtPriceX96: BigInt;
-    liquidity: BigInt;
+    sqrtPriceX96: bigint;
+    liquidity: bigint;
     tick: number;
 };
 
