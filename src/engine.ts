@@ -141,7 +141,7 @@ export default class Engine {
     }
 
     // Run the minute
-    runMinute = async () : Promise<void> => {
+    runMinute = async (): Promise<void> => {
         try {
             debug("minute executed");
             // Get all open positions
@@ -157,12 +157,12 @@ export default class Engine {
 
             //debug( "New open positions=", openPositions );
 
-            // Save balances
-            await shouldSaveStats(this.openPositions);
-
             // Send heartbeats
             // This should probably go after
             await sendHeartbeatAlerts(this.openPositions);
+
+            // Save balances
+            await shouldSaveStats(this.openPositions);
 
             // Do we have to trigger a re-deposit?
             await shouldTriggerRedeposit(this.openPositions);

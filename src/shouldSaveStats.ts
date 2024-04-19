@@ -1,33 +1,32 @@
 
 import { addHours } from 'date-fns';
 import Debug from 'debug';
+import Decimal from 'decimal.js';
 import { SAVE_STATS_EVERY_HOURS, TAKE_PROFIT_PERCENT, USDC_TOKEN, WANTED_FEE_AMOUNT, WETH_TOKEN } from './constants';
 import { DBProperty } from './database';
+import { DBPositionHistory } from './database/models/DBPositionHistory';
+import { DBStat } from './database/models/DBStat';
 import BalanceHelpers from './helpers/BalanceHelpers';
 import PoolHelper from './helpers/PoolHelper';
 import { PositionInfo } from "./helpers/PositionManager";
 import PriceHelper from './helpers/PriceHelper';
-import { DBStat } from './database/models/DBStat';
 import { EMA_DELIMETER, LAST_PERCENT_EMA_KEY } from './sendHeartbeatAlerts';
-import { DBPositionHistory } from './database/models/DBPositionHistory';
-import Decimal from 'decimal.js';
-import { Multicall } from '@uniswap/v3-sdk';
 
 const debug = Debug("unibalancer:shouldSaveStats");
 
-const LAST_SAVE_STAT_KEY = "LastTimeStatsSaved";
+const NEXT_SAVE_STAT_KEY = "NextTimeToSaveStats";
 
 export default async function (positionInfos: PositionInfo[]) {
     // Right NOW!
     const now = new Date();
 
     // Get the last heartbeat time
-    const lastStatsSaved = await DBProperty.getByKey(LAST_SAVE_STAT_KEY);
+    const nextTimeToSaveStats = await DBProperty.getByKey(NEXT_SAVE_STAT_KEY);
 
-    debug("lastBalanceSaved=%s", lastStatsSaved?.value);
+    debug("nextTimeToSaveStats=%s", nextTimeToSaveStats?.value);
 
     // Is it time?
-    if (lastStatsSaved != null && addHours(new Date(lastStatsSaved.value), SAVE_STATS_EVERY_HOURS) > now) {
+    if (nextTimeToSaveStats != null && now < new Date(nextTimeToSaveStats.value)) {
         debug("Not time save the stats.");
         return;
     }
@@ -134,10 +133,12 @@ export default async function (positionInfos: PositionInfo[]) {
         dailyPercentEma: lastPercentEma.toFixed()
     });
 
+    const nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1);
+
     // Last balance saved
     // Set the last heartbeat time
     await DBProperty.upsert({
-        key: LAST_SAVE_STAT_KEY,
-        value: now.toISOString()
+        key: NEXT_SAVE_STAT_KEY,
+        value: nextDate.toISOString()
     });
 }

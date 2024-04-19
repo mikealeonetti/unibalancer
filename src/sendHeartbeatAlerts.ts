@@ -21,7 +21,7 @@ import { plusOrMinusStringFromDecimal } from "./utils";
 
 const debug = Debug("unibalancer:sendHeartbeatAlerts");
 
-const HEARTBEAT_KEY = "lastHeartbeatAlert";
+const NEXT_HEARTBEAT_KEY = "nextHeartbeatAlert";
 export const LAST_PERCENT_EMA_KEY = "LastPercentEMA";
 const EMA_FACTOR = 7 * 24; // 1 week
 export const EMA_DELIMETER = ",";
@@ -31,12 +31,12 @@ export default async function (positionInfos: PositionInfo[]): Promise<void> {
     const now = new Date();
 
     // Get the last heartbeat time
-    const lastHeartbeat = await DBProperty.getByKey(HEARTBEAT_KEY);
+    const nextHeartbeat = await DBProperty.getByKey(NEXT_HEARTBEAT_KEY);
 
-    debug("lastHeartbeat=%s", lastHeartbeat?.value);
+    debug("nextHeartbeat=%s", nextHeartbeat?.value);
 
     // Is it time?
-    if (lastHeartbeat != null && addMinutes(new Date(lastHeartbeat.value), HEARTBEAT_FREQUENCY_MINUTES) > now) {
+    if (nextHeartbeat != null && now < new Date(nextHeartbeat.value)) {
         debug("Not time to send another heartbeat.");
         return;
     }
@@ -263,9 +263,12 @@ Wallet USDC: %s`,
         await alertViaTelegram(text);
     }
 
+    // Every hour on the hour
+    const nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1);
+
     // Set the last heartbeat time
     await DBProperty.upsert({
-        key: HEARTBEAT_KEY,
-        value: now.toISOString()
+        key: NEXT_HEARTBEAT_KEY,
+        value: nextDate.toISOString()
     });
 }
