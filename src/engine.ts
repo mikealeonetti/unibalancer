@@ -102,9 +102,9 @@ export default class Engine {
                 const { tickLower, tickUpper, positionId } = positionInfo;
 
                 // Is it out of range
-                const isOutOfRange = tickCurrent < tickLower || tickCurrent >= tickUpper;
+                const isOutOfRange = tickCurrent <= tickLower || tickCurrent >= tickUpper;
 
-                debug("onSwapEvent tickCurrent=%s, isOutOfRange=%s", tickCurrent, isOutOfRange);
+                debug("onSwapEvent tickCurrent=%s, tickLower=%s, tickUpper=%s, isOutOfRange=%s", tickCurrent, tickLower, tickUpper, isOutOfRange);
 
                 // Is the position out of range???
                 if (isOutOfRange) {
