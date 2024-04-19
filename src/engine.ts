@@ -10,6 +10,8 @@ import PositionManager from "./helpers/PositionManager";
 import sendHeartbeatAlerts from "./sendHeartbeatAlerts";
 import shouldTriggerRedeposit from "./shouldTriggerRedeposit";
 import shouldSaveStats from "./shouldSaveStats";
+import PoolHelper from "./helpers/PoolHelper";
+import { FeeAmount } from "@uniswap/v3-sdk";
 
 const debug = Debug("unibalancer:engine");
 

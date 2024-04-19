@@ -438,12 +438,21 @@ USDC amount: %s (%s%%)`,
 
             if (newPositionInfo != null) {
                 // Do all of these dumb conversions
-                const positionAmount0AsDecimal = newPositionInfo.position.amount0.toDecimal();
-                const positionAmount1AsDecimal = newPositionInfo.position.amount1.toDecimal();
                 const priceAsDecimal = newPositionInfo.price.toDecimal();
 
-                const stakeAmountAPrice = positionAmount0AsDecimal.mul(priceAsDecimal);
-                const totalStakeValueUSDC = stakeAmountAPrice.add(positionAmount1AsDecimal);
+                // Old info
+                const oldPositionAmount0AsDecimal = positionInfo.position.amount0.toDecimal();
+                const oldPositionAmount1AsDecimal = positionInfo.position.amount1.toDecimal();
+                
+                const oldStakeAmountAPrice = oldPositionAmount0AsDecimal.mul(priceAsDecimal);
+                const oldTotalStakeValueUSDC = oldStakeAmountAPrice.add(oldPositionAmount1AsDecimal);
+
+                // New info
+                const newPositionAmount0AsDecimal = newPositionInfo.position.amount0.toDecimal();
+                const newPositionAmount1AsDecimal = newPositionInfo.position.amount1.toDecimal();
+                
+                const newStakeAmountAPrice = newPositionAmount0AsDecimal.mul(priceAsDecimal);
+                const newTotalStakeValueUSDC = newStakeAmountAPrice.add(newPositionAmount1AsDecimal);
 
                 logger.info("Position increased [%s],", positionIdString);
 
@@ -454,18 +463,29 @@ Price: %s
 Low price: %s (%s%% from current)
 High price: %s (%s%% from current)
 
-Stake total: %s USDC
-WETH amount: %s (%s USDC, %s%%)
-USDC amount: %s (%s%%)`,
+Old Stake total: %s USDC
+Old WETH amount: %s (%s USDC, %s%%)
+Old USDC amount: %s (%s%%)
+
+New Stake total: %s USDC
+New WETH amount: %s (%s USDC, %s%%)
+New USDC amount: %s (%s%%)`,
                     positionIdString,
 
+                    // Prices
                     newPositionInfo.price.toFixed(4),
                     newPositionInfo.lowerPrice.toFixed(4), newPositionInfo.price.subtract(newPositionInfo.lowerPrice).divide(newPositionInfo.price).multiply(100).toFixed(2),
                     newPositionInfo.upperPrice.toFixed(4), newPositionInfo.upperPrice.subtract(newPositionInfo.price).divide(newPositionInfo.price).multiply(100).toFixed(2),
 
-                    totalStakeValueUSDC.toFixed(2),
-                    newPositionInfo.position.amount0.toFixed(), stakeAmountAPrice.toFixed(2), stakeAmountAPrice.div(totalStakeValueUSDC).mul(100).toFixed(2),
-                    newPositionInfo.position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUSDC).mul(100).toFixed(2)
+                    // Old stake values
+                    oldTotalStakeValueUSDC.toFixed(2),
+                    positionInfo.position.amount0.toFixed(), oldStakeAmountAPrice.toFixed(2), oldStakeAmountAPrice.div(oldTotalStakeValueUSDC).mul(100).toFixed(2),
+                    positionInfo.position.amount1.toFixed(2), oldPositionAmount1AsDecimal.div(oldTotalStakeValueUSDC).mul(100).toFixed(2),
+
+                    // New stake values
+                    newTotalStakeValueUSDC.toFixed(2),
+                    newPositionInfo.position.amount0.toFixed(), newStakeAmountAPrice.toFixed(2), newStakeAmountAPrice.div(newTotalStakeValueUSDC).mul(100).toFixed(2),
+                    newPositionInfo.position.amount1.toFixed(2), newPositionAmount1AsDecimal.div(newTotalStakeValueUSDC).mul(100).toFixed(2)
                 );
             }
         }
