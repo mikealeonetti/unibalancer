@@ -78,6 +78,9 @@ export default class Engine {
         await PositionManager.mintOrIncreasePosition();
 
         logger.info("New position opened in swap event.");
+
+        // Save the new positions
+        this.openPositions = await PositionManager.getAllPositions();
     }
 
     /**
