@@ -44,12 +44,12 @@ export interface PositionInfo {
     lowerPrice: Price<Token, Token>;
     price: Price<Token, Token>;
     poolAndPoolInfo: PoolAndPoolInfo;
-    positionId: BigInt;
+    positionId: bigint;
     tickLower: number;
     tickUpper: number;
-    liquidity: BigInt;
-    feeGrowthInside0LastX128: BigInt;
-    feeGrowthInside1LastX128: BigInt;
+    liquidity: bigint;
+    feeGrowthInside0LastX128: bigint;
+    feeGrowthInside1LastX128: bigint;
     tokensOwed0: Decimal;
     tokensOwed1: Decimal;
     position: Position;

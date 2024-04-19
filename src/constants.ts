@@ -42,7 +42,7 @@ export const WITHDRAW_SLIPPAGE = Number(process.env.WITHDRAW_SLIPPAGE) || 3;
 
 export const LOG_LEVEL: string = process.env.LOG_LEVEL || "info";
 
-export const TOLERANCE_IN_MINUTES: number = Number(process.env.TOLERANCE_IN_MINUTES) || 5;
+export const TOLERANCE_IN_MINUTES: number = Number(process.env.TOLERANCE_IN_MINUTES) || 0;
 
 export const WANTED_FEE_AMOUNT = FeeAmount.MEDIUM;
 

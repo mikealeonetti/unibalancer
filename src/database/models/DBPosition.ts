@@ -16,7 +16,7 @@ export class DBPosition extends Model<InferAttributes<DBPosition>, InferCreation
 	declare redepositAttemptsRemaining : CreationOptional<number>;
 
 	declare static getByPositionIdString: (positionId: string) => Promise<DBPosition | null>;
-	declare static getByPositionId: (positionId: BigInt) => Promise<DBPosition | null>;
+	declare static getByPositionId: (positionId: bigint) => Promise<DBPosition | null>;
 }
 
 DBPosition.getByPositionIdString = function (positionId: string): Promise<DBPosition | null> {
@@ -25,7 +25,7 @@ DBPosition.getByPositionIdString = function (positionId: string): Promise<DBPosi
 	});
 };
 
-DBPosition.getByPositionId = function (positionId: BigInt): Promise<DBPosition | null> {
+DBPosition.getByPositionId = function (positionId: bigint): Promise<DBPosition | null> {
 	return this.getByPositionIdString(positionId.toString());
 };
 
