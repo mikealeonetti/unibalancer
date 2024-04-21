@@ -408,7 +408,8 @@ High price: %s (%s%% from current)
 
 Stake total: %s USDC
 WETH amount: %s (%s USDC, %s%%)
-USDC amount: %s (%s%%)`,
+USDC amount: %s (%s%%)
+Liquidity: %s`,
                     newPositionIdString,
 
                     newPositionInfo.price.toFixed(4),
@@ -417,7 +418,8 @@ USDC amount: %s (%s%%)`,
 
                     totalStakeValueUSDC.toFixed(2),
                     newPositionInfo.position.amount0.toFixed(), stakeAmountAPrice.toFixed(2), stakeAmountAPrice.div(totalStakeValueUSDC).mul(100).toFixed(2),
-                    newPositionInfo.position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUSDC).mul(100).toFixed(2)
+                    newPositionInfo.position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUSDC).mul(100).toFixed(2),
+                    newPositionInfo.position.liquidity
                 );
             }
             else
@@ -466,10 +468,12 @@ High price: %s (%s%% from current)
 Old Stake total: %s USDC
 Old WETH amount: %s (%s USDC, %s%%)
 Old USDC amount: %s (%s%%)
+Old liquidity: %s
 
 New Stake total: %s USDC
 New WETH amount: %s (%s USDC, %s%%)
-New USDC amount: %s (%s%%)`,
+New USDC amount: %s (%s%%)
+New liquidity: %s`,
                     positionIdString,
 
                     // Prices
@@ -481,11 +485,13 @@ New USDC amount: %s (%s%%)`,
                     oldTotalStakeValueUSDC.toFixed(2),
                     positionInfo.position.amount0.toFixed(), oldStakeAmountAPrice.toFixed(2), oldStakeAmountAPrice.div(oldTotalStakeValueUSDC).mul(100).toFixed(2),
                     positionInfo.position.amount1.toFixed(2), oldPositionAmount1AsDecimal.div(oldTotalStakeValueUSDC).mul(100).toFixed(2),
+                    positionInfo.position.liquidity,
 
                     // New stake values
                     newTotalStakeValueUSDC.toFixed(2),
                     newPositionInfo.position.amount0.toFixed(), newStakeAmountAPrice.toFixed(2), newStakeAmountAPrice.div(newTotalStakeValueUSDC).mul(100).toFixed(2),
-                    newPositionInfo.position.amount1.toFixed(2), newPositionAmount1AsDecimal.div(newTotalStakeValueUSDC).mul(100).toFixed(2)
+                    newPositionInfo.position.amount1.toFixed(2), newPositionAmount1AsDecimal.div(newTotalStakeValueUSDC).mul(100).toFixed(2),
+                    newPositionInfo.liquidity
                 );
             }
         }

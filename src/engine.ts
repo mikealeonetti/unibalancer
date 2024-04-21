@@ -34,7 +34,7 @@ export default class Engine {
      * Close a position and re-open a new one
      * @param positionId 
      */
-    async closeAndReOpenPosition(positionId: bigint): Promise<void> {
+    async closeAndReOpenPosition(positionId: bigint): Promise<boolean> {
         // Re-get positions to re-fresh
         const [
             currentPositions,
@@ -49,11 +49,11 @@ export default class Engine {
 
         if (!positionInfo) {
             logger.warn("Wanted to close position [%s] via tick but was not found on the blockchain.", positionId);
-            return;
+            return false;
         }
         if (!dbPosition) {
             logger.warn("Wanted to close position [%s] via tick but was not found in the database.", positionId);
-            return;
+            return false;
         }
 
         // Close it
@@ -62,14 +62,14 @@ export default class Engine {
         // Did the position close?
         if (!positionClosed) {
             logger.warn("Failed to close open position [%s].", positionId);
-            return;
+            return false;
         }
 
         // Do we have more positions?
         // Current positions should only be one
         if (currentPositions.length > 1) {
             logger.warn("Want to open a new position but there is already one open in swap event.");
-            return;
+            return false;
         }
 
         logger.info("Looking to open a new position in swap event.");
@@ -79,8 +79,7 @@ export default class Engine {
 
         logger.info("New position opened in swap event.");
 
-        // Save the new positions
-        this.openPositions = await PositionManager.getAllPositions();
+        return true;
     }
 
     /**
@@ -100,6 +99,9 @@ export default class Engine {
             // Shallow copy of open positions
             const openPositions = clone(this.openPositions);
 
+            // Should we refresh after
+            let refreshPositionsAfter = false;
+
             // Loop the open positions
             for (const positionInfo of openPositions) {
                 const { tickLower, tickUpper, positionId } = positionInfo;
@@ -116,9 +118,13 @@ export default class Engine {
                     logger.info("Currrent position [%s] is out of range on event. Triggering close and rebalance.", positionId);
 
                     // Close and don't wait
-                    await this.closeAndReOpenPosition(positionId);
+                    refreshPositionsAfter ||= await this.closeAndReOpenPosition(positionId);
                 }
             }
+
+            // Get new positions?
+            if (refreshPositionsAfter)
+                this.openPositions = await PositionManager.getAllPositions();
         }
         catch (e) {
 

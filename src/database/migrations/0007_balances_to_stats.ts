@@ -1,6 +1,5 @@
-import { DataType, DataTypes, ModelAttributeColumnOptions } from "sequelize";
+import { DataTypes, ModelAttributeColumnOptions } from "sequelize";
 import { UmzugMigration } from "../common";
-import { omit, pick } from "lodash";
 
 // How we'll rename the tables
 const oldTableName = "Balances";

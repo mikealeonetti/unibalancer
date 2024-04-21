@@ -204,6 +204,7 @@ Est Per Day: %s%%
 Stake total: %s USDC (%s%% from entry, %s%% overall)
 WETH amount: %s (%s USDC, %s%%)
 USDC amount: %s (%s%%)
+Liquidity: %s
 
 Last rebalance: %s
 
@@ -239,6 +240,7 @@ Wallet USDC: %s`,
             totalStakeValueUsdcAsDecimal.toFixed(2), plusOrMinusStringFromDecimal(distanceFromEnteredPriceUSDC, 2), plusOrMinusStringFromDecimal(balancePercentSinceBeginningBalance, 2),
             position.amount0.toFixed(), stakeAmountAPrice.toFixed(2), stakeAmountAPrice.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
             position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
+            position.liquidity,
 
             // Last rebalance
             lastRebalanceString,

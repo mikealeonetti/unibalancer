@@ -83,6 +83,9 @@ export default async function (positionInfos: PositionInfo[]) {
 
     debug("balances before wethBalance=%s, usdcbalance=%s", wethBalance.toFixed(), usdcBalance.toFixed());
 
+    // The total liquidity
+    let totalLiquidity = new Decimal(0);
+
     // Now loop and add them togetta
     for (const { position, tokensOwed0, tokensOwed1 } of positionInfos) {
         // Add the balance in the stake
@@ -104,6 +107,9 @@ export default async function (positionInfos: PositionInfo[]) {
         // Unrealized profits
         profitTakenTokenA = profitTakenTokenA.add(profit0.times(TAKE_PROFIT_PERCENT).div(100));
         profitTakenTokenB = profitTakenTokenB.add(profit1.times(TAKE_PROFIT_PERCENT).div(100));
+
+        // Add the liquidity
+        totalLiquidity = totalLiquidity.add(position.liquidity.toString());
     }
 
     // We have more positions
@@ -130,7 +136,8 @@ export default async function (positionInfos: PositionInfo[]) {
         deficitsTokenA: deficitsTokenA.toFixed(),
         deficitsTokenB: deficitsTokenB.toFixed(),
         avgPositionTimeInHours,
-        dailyPercentEma: lastPercentEma.toFixed()
+        dailyPercentEma: lastPercentEma.toFixed(),
+        totalLiquidity : totalLiquidity.toFixed()
     });
 
     const nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1);

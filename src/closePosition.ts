@@ -124,6 +124,7 @@ Profits WETH: %s (%s USDC)
 Stake total: %s USDC
 WETH amount: %s (%s USDC, %s%%)
 USDC amount: %s (%s%%)
+Liquidity: %s
 
 Last rebalance: %s`,
             positionIdString, dbPosition.createdAt.toLocaleString(), // Created at???
@@ -143,6 +144,7 @@ Last rebalance: %s`,
             totalStakeValueUsdcAsDecimal.toFixed(2),
             position.amount0.toFixed(), stakeAmountAPriceAsDecimal.toFixed(2), stakeAmountAPriceAsDecimal.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
             position.amount1.toFixed(2), positionAmount1AsDecimal.div(totalStakeValueUsdcAsDecimal).mul(100).toFixed(2),
+            position.liquidity,
 
             dbPosition.lastRewardsCollected ? dbPosition.lastRewardsCollected.toLocaleString() : "Never"
         );

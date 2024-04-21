@@ -15,6 +15,7 @@ export class DBStat extends Model<InferAttributes<DBStat>, InferCreationAttribut
     declare deficitsTokenA: string;
     declare deficitsTokenB: string;
     declare avgPositionTimeInHours: number;
+    declare totalLiquidity : string;
 
     // createdAt can be undefined during creation
     declare createdAt: CreationOptional<Date>;
@@ -73,6 +74,10 @@ DBStat.init({
     },
     avgPositionTimeInHours: {
         type: DataTypes.DECIMAL,
+        allowNull: false
+    },
+    totalLiquidity: {
+        type: DataTypes.STRING,
         allowNull: false
     },
     createdAt: DataTypes.DATE,
