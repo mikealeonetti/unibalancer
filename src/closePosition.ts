@@ -101,6 +101,7 @@ export default async function (positionInfo: PositionInfo, dbPosition: DBPositio
         if (dbPositionHistory) {
             dbPositionHistory.closed = new Date();
             dbPositionHistory.closedPriceUSDC = totalStakeValueUsdcAsDecimal.toFixed();
+            dbPositionHistory.liquidityAtClose = position.liquidity.toString();
             await dbPositionHistory.save();
         }
 

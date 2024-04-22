@@ -206,7 +206,7 @@ WETH amount: %s (%s USDC, %s%%)
 USDC amount: %s (%s%%)
 Liquidity: %s
 
-Last rebalance: %s
+Last re-compound: %s
 
 Total Deficit: %s USDC
 Deficit WETH: %s (%s USDC)

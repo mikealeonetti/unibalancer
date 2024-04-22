@@ -396,7 +396,8 @@ export default class PositionManager {
 
                 await DBPositionHistory.create({
                     positionId: newPositionIdString,
-                    enteredPriceUSDC: totalStakeValueUSDC.toString()
+                    enteredPriceUSDC: totalStakeValueUSDC.toString(),
+                    liquidityAtOpen: newPositionInfo.liquidity.toString()
                 });
 
                 // Prepare the text

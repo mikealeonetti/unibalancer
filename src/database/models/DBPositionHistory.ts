@@ -13,6 +13,10 @@ export class DBPositionHistory extends Model<InferAttributes<DBPositionHistory>,
 	// updatedAt can be undefined during creation
 	declare updatedAt: CreationOptional<Date>;
 
+	declare liquidityAtOpen:string;
+	declare liquidityAtClose:string|null;
+
+
 	declare static getAverageTimeInPosition: ()=>Promise<number>;
 	declare static getLatestByPositionIdString : ( positionId : string )=>Promise<DBPositionHistory|null>;
 	declare static getLatestByPositionId : ( positionId : BigInt )=>Promise<DBPositionHistory|null>;
@@ -74,6 +78,13 @@ DBPositionHistory.init({
 	},
 	closedPriceUSDC: {
 		type: DataTypes.STRING,
+	},
+	liquidityAtOpen: {
+		type: DataTypes.STRING,
+		allowNull : false
+	},
+	liquidityAtClose: {
+		type: DataTypes.STRING
 	},
 	createdAt: DataTypes.DATE,
 	updatedAt: DataTypes.DATE,

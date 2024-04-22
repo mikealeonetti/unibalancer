@@ -37,7 +37,8 @@ export default async function (positions: PositionInfo[]): Promise<void> {
         // Add to the history
         await DBPositionHistory.create( {
             positionId : positionId.toString(),
-            enteredPriceUSDC : position.position.amount0.toDecimal().times(priceDecimal).plus(position.position.amount1.toDecimal()).toString()
+            enteredPriceUSDC : position.position.amount0.toDecimal().times(priceDecimal).plus(position.position.amount1.toDecimal()).toString(),
+            liquidityAtOpen: position.position.liquidity.toString()
         });
     }
 
