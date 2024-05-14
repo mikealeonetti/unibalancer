@@ -8,7 +8,7 @@ import Debug from 'debug';
 import PromiseQueue from "./PromiseQueue";
 import checkForPositionsNeedingRedeposit from "./checkForPositionsNeedingRedeposit";
 import closePosition from "./closePosition";
-import { USDC_TOKEN, WANTED_FEE_AMOUNT, WETH_TOKEN } from "./constants";
+import { TOLERANCE_IN_MINUTES, USDC_TOKEN, WANTED_FEE_AMOUNT, WETH_TOKEN } from "./constants";
 import { DBPosition } from "./database/models/DBPosition";
 import PoolHelper from "./helpers/PoolHelper";
 import PositionManager, { PositionInfo } from "./helpers/PositionManager";
@@ -199,8 +199,9 @@ export default class Engine {
      * Main runner
      */
     async run(): Promise<void> {
-        // Subscribe to the pool
-        this.subscribeToPool();
+        // Subscribe to the pool for immediate swaps
+        if( TOLERANCE_IN_MINUTES==0 )
+            this.subscribeToPool(); // If no tolerance is specified then we need immediate re-balancing
 
         // The main async event loop
         while (true) {
